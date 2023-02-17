@@ -83,7 +83,7 @@ class MakeDataset(Dataset):
         return part_x
 
     # Getting edge_features - edge_index, edge_attribute
-    def edge_feature(self, csv_file, root_dir):
+    def edge_index(self, csv_file, root_dir):
         # Search path
         edge_index_path = os.path.join(self.search_path, root_dir, 'edge_index', csv_file)
 
@@ -111,17 +111,22 @@ class MakeDataset(Dataset):
         tensor_c = torch.tensor(list_c)
         edge_tensor = torch.cat((tensor_i, tensor_c), dim=0).reshape(2,len(tensor_i))
         edge_index = edge_tensor.to(dtype=torch.int64)
-         
-      
+
+        return edge_index
+
+    def edge_attr(self, csv_file, root_dir):
+
+        edge_attr_path = os.path.join(self.search_path, root_dir, 'edge_attr', csv_file)
+
         ############################################################
         ## Edge attribute # on, in, attach 임의로 정해서 만들어 놓기
         # edge_attr = torch.Tensor(ef.values)
-        ea_csv = pd.read_csv('/home/jeni/Desktop/dataloader/dataset/edge_features/edge_attr/init_ea0.csv',index_col=0)
+        ea_csv = pd.read_csv(edge_attr_path, index_col=0)
         ea_drop = ea_csv.drop(labels='ID',axis=1) # drop the "ID" column / axis=0 (row), axis=1(column)
         ea = torch.Tensor(ea_drop.values) # dataframe to tensor
         edge_attr = ea.to(dtype = torch.float32)
         
-        return edge_index, edge_attr
+        return edge_attr
 
 
 ## Print
@@ -131,10 +136,10 @@ make_data = MakeDataset(root_path='dataset')
 
 # print(make_data.rand_sample(folder_name='node_features',file_name='nf1.csv',save_dir='node_features', n=13))
 x_train = make_data.node_feature(csv_file='nf1.csv', root_dir='node_features')
-edge_index_train, edge_attr_train = make_data.edge_feature(csv_file='ef0.csv', root_dir='edge_features')
+edge_index_train, edge_attr_train = make_data.edge_index(csv_file='ef0.csv', root_dir='edge_features')
 
 x_test = make_data.node_feature(csv_file='nf1.csv', root_dir='node_features')
-edge_index_test, edge_attr_test = make_data.edge_feature(csv_file='ef_pick1.csv', root_dir='edge_features')
+edge_index_test, edge_attr_test = make_data.edge_index(csv_file='ef_pick1.csv', root_dir='edge_features')
 
 # print(edge_attr)
 # data = x, edge_index, edge_attr
