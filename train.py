@@ -64,6 +64,11 @@ class ActionModel(nn.Module):
         edge_index = input_data['edge_index']
         edge_attr = input_data['edge_attr']
 
+
+
+        
+
+
         x.to(device)
         edge_index.to(device)
         edge_attr.to(device)
@@ -90,11 +95,13 @@ class ActionModel(nn.Module):
         #print(x.shape)
 
         action_input_emb = x.mean(axis=1)      # x feature를 합치는 과정 / 현재는 mean으로 (추후 변경 예정)
-        # print("actopm=input",action_input_emb)
-        #print(action_input_emb.shape) # batch X hidden
+        print("actopm=input",action_input_emb)
+        print(action_input_emb.shape) # batch X hidden
+        input()
         softmax = nn.Softmax(dim=1).to(device)
         action_prob = softmax(self.action_layers(action_input_emb))
-       
+        print("action_prob:", action_prob)
+        print(action_prob.shape)
         # action_prob = self.action_layers(action_input_emb)
     
     
@@ -143,7 +150,7 @@ def train():
                  "test_loss":[]}
 
     #train
-    for epoch in range(1000):
+    for epoch in range(100):
         print("#############################")
         print("epoch number {}".format(epoch+1))
         model.train()
@@ -218,7 +225,7 @@ def train():
 
         if test_avg_loss < best_loss:
             best_loss = test_avg_loss
-            model_path = './stacking_model/stacking_model_{}'.format(epoch)
+            model_path = './stacking_model/stacking_model_{}.pth'.format(epoch)
             torch.save(model.state_dict(), model_path)
     
     #save loss record
@@ -228,4 +235,4 @@ def train():
 
 
 
-train()
+#train()

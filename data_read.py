@@ -155,6 +155,19 @@ def stacking_5_dataset():
             state_edge_index= make_data.edge_index(csv_file='ef'+str(i)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
             state_edge_attr = make_data.edge_attr(csv_file='ea'+str(i)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
             
+            #goal_edge_index= make_data.edge_index(csv_file='ef'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
+            #goal_edge_attr = make_data.edge_attr(csv_file='ea'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
+
+            edge_index_template = np.zeros((9, 9), dtype=int)
+            #print(state_edge_index.size(1))
+            for idx in range(state_edge_index.size(1)):
+                src, dest = (state_edge_index[0][idx].item(), state_edge_index[1][idx].item())
+                edge_index_template[src][dest] = 1
+            
+            #print(block_order, edge_index_template)
+            
+               
+
             action_code = torch.Tensor(action_encoder[action_sequence[i]])
 
             target_object_index = block_order_num[target_object_sequence[i]-1]
