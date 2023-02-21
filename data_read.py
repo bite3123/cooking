@@ -133,6 +133,30 @@ print("Node Feature:\n",dataset2.x) #Number of nodes: 8, node feature: 13 (8,13)
 print("\nEdge index:\n",dataset2.edge_index) #(2,14)
 print("\nEdge attr:\n", dataset2.edge_attr) #shape (14,3)
 
+def to_fully_connected(state_edge_index, state_edge_attr):
+    edge_index_template = np.ones((9, 9), dtype=int)
+    for idx in range(9):
+        edge_index_template[idx][idx] = 0
+    #print(state_edge_index.size(1))
+    for idx in range(state_edge_index.size(1)):
+        src, dest = (state_edge_index[0][idx].item(), state_edge_index[1][idx].item())
+        edge_index_template[src][dest] = 0
+        #edge_index_template[src][dest] = 1
+
+    for src in range(9):
+        for dest in range(9):
+            if edge_index_template[src][dest] == 1:
+                state_edge_index = torch.cat((state_edge_index, torch.tensor([[src],[dest]])), dim=1)
+                #state_edge_index[0].append(src)
+                #state_edge_index[1].append(dest)
+                state_edge_attr = torch.cat((state_edge_attr, torch.zeros(1, 13)), dim=0)
+                #state_edge_attr.append(np.zeros((13), dtype=int))
+    #print(state_edge_index.shape)
+    #print(state_edge_attr.shape)
+    #input()
+    #print(block_order, edge_index_template)
+    return state_edge_index, state_edge_attr
+
 def stacking_5_dataset():
     stacking_dataset = []
 
@@ -148,24 +172,17 @@ def stacking_5_dataset():
         goal_edge_index= make_data.edge_index(csv_file='ef8.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
         goal_edge_attr = make_data.edge_attr(csv_file='ea8.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
         
+        goal_edge_index, goal_edge_attr = to_fully_connected(goal_edge_index, goal_edge_attr)
+
         block_order_num = list(map(int, block_order.split('_')))
         #print(block_order_num)
-
         for i in range(8):
             state_edge_index= make_data.edge_index(csv_file='ef'+str(i)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
             state_edge_attr = make_data.edge_attr(csv_file='ea'+str(i)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
             
             #goal_edge_index= make_data.edge_index(csv_file='ef'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
             #goal_edge_attr = make_data.edge_attr(csv_file='ea'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
-
-            edge_index_template = np.zeros((9, 9), dtype=int)
-            #print(state_edge_index.size(1))
-            for idx in range(state_edge_index.size(1)):
-                src, dest = (state_edge_index[0][idx].item(), state_edge_index[1][idx].item())
-                edge_index_template[src][dest] = 1
-            
-            #print(block_order, edge_index_template)
-            
+            state_edge_index, state_edge_attr = to_fully_connected(state_edge_index, state_edge_attr)
                
 
             action_code = torch.Tensor(action_encoder[action_sequence[i]])
