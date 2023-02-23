@@ -28,11 +28,16 @@ class StackingDataset(Dataset):
         with open(self.search_path + "/stacking_" + str(index), "rb") as file:
             loaded_data = pickle.load(file)
         #print(loaded_data['info'])
-        
+        '''
         x = loaded_data['input']['state']['x']
         edge_index = loaded_data['input']['state']['edge_index']
         edge_attr = loaded_data['input']['state']['edge_attr']
+        '''
+        x = loaded_data['input']['state']['x']
+        edge_index = loaded_data['input']['key']['edge_index']
+        edge_attr = loaded_data['input']['key']['edge_attr']
         
+        key_node = loaded_data['input']['key']['key_node']
         
         input_data = Data(x, edge_index, edge_attr)   
             
@@ -43,7 +48,7 @@ class StackingDataset(Dataset):
         
 
 
-        return input_data, target_data
+        return input_data, target_data, key_node
 
 
 #total_dataset = StackingDataset('stacking_dataset')

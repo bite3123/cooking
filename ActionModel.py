@@ -34,21 +34,29 @@ class ActionModel(nn.Module):
         self.batch_size = batch_size
 
         self.convs = [GINEConv(nn=nn.Sequential(nn.Linear(self.node_feature_size, self.hidden_dim),
-                                                nn.LeakyReLU(),
+                                                nn.BatchNorm1d(self.hidden_dim),
+                                                nn.ReLU(),
                                                 nn.Linear(self.hidden_dim, self.hidden_dim),
-                                                nn.LeakyReLU(),),
+                                                nn.BatchNorm1d(self.hidden_dim),
+                                                nn.ReLU(),),
                                edge_dim=self.edge_feature_size),
                       GINEConv(nn=nn.Sequential(nn.Linear(self.hidden_dim, self.hidden_dim),
-                                                nn.LeakyReLU(),
+                                                nn.BatchNorm1d(self.hidden_dim),
+                                                nn.ReLU(),
                                                 nn.Linear(self.hidden_dim, self.hidden_dim),
-                                                nn.LeakyReLU(),),
+                                                nn.BatchNorm1d(self.hidden_dim),
+                                                nn.ReLU(),),
                                edge_dim=self.edge_feature_size)]
         
         self.action_layers = nn.Sequential(
             nn.Linear(self.hidden_dim, self.hidden_dim),
-            nn.LeakyReLU(),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
             nn.Linear(self.hidden_dim, self.num_action),
-            nn.LeakyReLU(),
+            nn.ReLU(),
         )
         
         self.node_layers = nn.Sequential(
@@ -84,15 +92,29 @@ class ActionModel(nn.Module):
         for conv in self.convs[:-1]:
             x = conv(x, edge_index, edge_attr=edge_attr) # adding edge features here!
             x = F.relu(x)
-            x = F.dropout(x, training = self.training)
+            #x = F.dropout(x, training = self.training)
         x = self.convs[-1](x, edge_index, edge_attr=edge_attr) # edge features here as well
         
+        
+
 
         #144X64 -> (9X16)X64 = (num_node X batch)Xhidden_dim
         x = x.reshape(self.batch_size, -1, self.hidden_dim) #batch X node X hidden
-        #print(x.shape)
+        x_new = []
+        for i in range(self.batch_size):
+            temp = []
+            key_node = target_data[i]
+            for node in key_node:
+                temp.append(x[i][node])
+            temp_aggr = torch.stack(temp)
+            x_new.append(temp_aggr.mean(dim=0))
+        action_input_emb = torch.stack(x_new)
+                
 
 
+
+
+        '''
         ############
 
         target_object = target_data['object']
@@ -116,13 +138,17 @@ class ActionModel(nn.Module):
         #print(action_input_emb.shape)
         #input()
         ################
+        '''
 
         #action_input_emb = x.mean(axis=1)      # x feature를 합치는 과정 / 현재는 mean으로 (추후 변경 예정)
         #print("actopm=input",action_input_emb)
         #print(action_input_emb.shape) # batch X hidden
         #input()
-        softmax = nn.Softmax(dim=1).to(device)
-        action_prob = softmax(self.action_layers(action_input_emb))
+        #softmax = nn.Softmax(dim=1).to(device)
+        #action_prob = softmax(self.action_layers(action_input_emb))
+        action_prob = self.action_layers(action_input_emb)
+        #print(action_prob)
+        #input()
         #print("action_prob:", action_prob)
         #print(action_prob.shape)
         # action_prob = self.action_layers(action_input_emb)

@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset
 from torch_geometric.data import Data
+from torch_geometric.utils import subgraph
 import pickle
 ## Dataset
 class MakeDataset(Dataset):
@@ -202,6 +203,41 @@ def concat_state_n_goal(state_edge_index, state_edge_attr, goal_edge_index, goal
 
     return state_edge_index, cat_edge_attr
 
+def key_node_list(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr):
+    state_index_set = set()
+    goal_index_set = set()
+    state_edge_index = torch.t(state_edge_index)
+    goal_edge_index = torch.t(goal_edge_index)
+    #print(state_edge_index)
+    #print(goal_edge_index)
+    for idx in state_edge_index:
+        temp = tuple(map(int, idx.tolist()))
+        state_index_set.add(temp)
+    for idx in goal_edge_index:
+        temp = tuple(map(int, idx.tolist()))
+        goal_index_set.add(temp)
+    key_index_set = (state_index_set|goal_index_set) - (state_index_set&goal_index_set)
+    #print(key_index_set)
+    key_index_list = []
+    for idx in key_index_set:
+        key_index_list.append(torch.tensor(list(idx)))
+    key_edge_index = torch.stack(key_index_list, dim=1)
+    key_edge_index = torch.t(key_edge_index)
+    #print(key_edge_index)
+
+    key_node_set = set()
+    for i in torch.flatten(key_edge_index).tolist():
+        key_node_set.add(i)
+    key_node_list = torch.tensor(list(key_node_set))
+    #print(key_node_list)
+    
+    #key_edge_index, key_edge_attr = subgraph(subset=key_node_list, edge_index=torch.t(state_edge_index), edge_attr=state_edge_attr)
+
+    #input()
+
+
+
+    return key_node_list
 
 
 
@@ -217,8 +253,8 @@ def stacking_5_dataset():
 
     block_order_list = os.path.join(make_data.search_path, 'edge_data')
     for block_order in os.listdir(block_order_list):
-        goal_edge_index= make_data.edge_index(csv_file='ef8.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
-        goal_edge_attr = make_data.edge_attr(csv_file='ea8.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
+        #goal_edge_index= make_data.edge_index(csv_file='ef8.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
+        #goal_edge_attr = make_data.edge_attr(csv_file='ea8.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
         
         #goal_edge_index, goal_edge_attr = to_fully_connected(goal_edge_index, goal_edge_attr)
 
@@ -228,13 +264,17 @@ def stacking_5_dataset():
             state_edge_index= make_data.edge_index(csv_file='ef'+str(i)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
             state_edge_attr = make_data.edge_attr(csv_file='ea'+str(i)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
             
-            #goal_edge_index= make_data.edge_index(csv_file='ef'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
-            #goal_edge_attr = make_data.edge_attr(csv_file='ea'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
+            goal_edge_index= make_data.edge_index(csv_file='ef'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
+            goal_edge_attr = make_data.edge_attr(csv_file='ea'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
             
-            state_edge_index, state_edge_attr = to_fully_connected(state_edge_index, state_edge_attr)
+            key_node = key_node_list(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
+
+            #state_edge_index, state_edge_attr = to_fully_connected(state_edge_index, state_edge_attr)
             #goal_edge_index, goal_edge_attr = to_fully_connected(goal_edge_index, goal_edge_attr) 
 
             cat_edge_index, cat_edge_attr = concat_state_n_goal(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
+
+            cat_edge_index, cat_edge_attr = subgraph(subset=key_node, edge_index=cat_edge_index, edge_attr=cat_edge_attr)
             #print(cat_edge_index)
             #print(cat_edge_attr)
             #input()
@@ -248,26 +288,34 @@ def stacking_5_dataset():
 
             #write data to dictionary
             graph_dict_data = {'input':{'state':{},
-                                        'goal':{}
+                                        'goal':{},
+                                        'key':{}
                                         },
                             'target':{'action':[],
                                         'object':[]
                                         },
-                            'info':str()
+                            'info':{'order':str(),
+                                    'step':int()
+                                    }
                                         }
             
             graph_dict_data['input']['state']['x'] = x
-            graph_dict_data['input']['state']['edge_index'] = cat_edge_index
-            graph_dict_data['input']['state']['edge_attr'] = cat_edge_attr
+            graph_dict_data['input']['state']['edge_index'] = state_edge_index
+            graph_dict_data['input']['state']['edge_attr'] = state_edge_attr
 
             graph_dict_data['input']['goal']['x'] = x
             graph_dict_data['input']['goal']['edge_index'] = goal_edge_index
-            graph_dict_data['input']['goal']['edge_attr'] = goal_edge_attr            
+            graph_dict_data['input']['goal']['edge_attr'] = goal_edge_attr
+
+            graph_dict_data['input']['key']['edge_index'] = cat_edge_index
+            graph_dict_data['input']['key']['edge_attr'] = cat_edge_attr
+            graph_dict_data['input']['key']['key_node'] = key_node
 
             graph_dict_data['target']['action'] = action_code
             graph_dict_data['target']['object'] = target_object_score
 
-            graph_dict_data['info'] = block_order
+            graph_dict_data['info']['order'] = block_order
+            graph_dict_data['info']['step'] = i
             #print(graph_dict_data['input']['state']['edge_index'])
             #print(graph_dict_data['input']['state']['edge_attr'].shape)
             #input()
@@ -279,19 +327,31 @@ def stacking_5_dataset():
 
 stacking_dataset = stacking_5_dataset()
 print("the num of data:", len(stacking_dataset))#120X8=960
-print(stacking_dataset[0])
+
+for g in stacking_dataset:
+    #print(g)
+    print("#############Checking#############")
+
+    print("Stacking Order: ", g['info']['order'])
+    print("Step in order: ", g['info']['step'])
+    print("\nCurrent State:")
+    print("\tedge_index:\n",g['input']['state']['edge_index'].numpy())
+    print("\tedge_attr:\n",g['input']['state']['edge_attr'].numpy())
+    input()
+
+#print(stacking_dataset[0])
 #print(stacking_dataset[8]['input']['state']['edge_index'])
 #print(stacking_dataset[8]['input']['goal']['edge_index'])
 #print(stacking_dataset[8]['info'])\
 #save each graph in json file
 '''
 for i, g in enumerate(stacking_dataset):
-    file_path = "./stacking_dataset_nopos/stacking_"+str(i)
+    file_path = "./stacking_dataset_nopos_nofc/stacking_"+str(i)
     with open(file_path, "wb") as outfile:
         pickle.dump(g, outfile)
-
-
 '''
+
+
 '''
 with open("./stacking_dataset/stacking_"+str(10), "rb") as file:
     load_data = pickle.load(file)
