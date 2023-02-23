@@ -58,7 +58,7 @@ for epoch in range(100):
 
         optimizer.zero_grad()
         
-        pred_action_prob, pred_node_scores = model(input)
+        pred_action_prob, pred_node_scores = model(input, target)
         target_action_prob, target_node_scores = target['action'], target['object']
         target_action_prob.to(device)
         target_node_scores.to(device)
@@ -99,7 +99,7 @@ for epoch in range(100):
         #test_input.to(device)
         #test_target.to(device)
 
-        test_pred_action_prob, test_pred_node_scores = model(test_input)
+        test_pred_action_prob, test_pred_node_scores = model(test_input, test_target)
         test_target_action_prob, test_target_node_scores = test_target['action'], test_target['object']
 
         test_L_action = loss(test_pred_action_prob, test_target_action_prob)

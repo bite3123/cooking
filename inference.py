@@ -16,7 +16,7 @@ node_feature_size = 6 #노드 feature 크기
 edge_feature_size = 26 # 노드 사이의 relation 종류 개수 [on_right,on_left, in_right, in_left, attach, in-grasp]
 batch_size = 1
 
-saved_path = "./stacking_model/stacking_model_77.pth"
+saved_path = "./stacking_model/stacking_model_25.pth"
 
 saved_model = ActionModel(hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size)
 saved_model.load_state_dict(torch.load(saved_path))
@@ -31,7 +31,7 @@ for test_input, test_target in data_test_loader:
     print("#########################################")
     print("test data:", test_input, test_target)
 
-    pred_action_prob, pred_node_scores = saved_model(test_input)
+    pred_action_prob, pred_node_scores = saved_model(test_input, test_target)
     print("pred_action_prob:", pred_action_prob)
     print("pred_node_scores:", pred_node_scores)
 

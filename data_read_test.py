@@ -95,11 +95,12 @@ class MakeDataset(Dataset):
         #print(ea_csv.columns)
         #ea_drop = ea_csv.drop(labels='ID',axis=1) # drop the "ID" column / axis=0 (row), axis=1(column)
         ea = torch.Tensor(ea_csv.values) # dataframe to tensor
+        ea = ea[:, 0:7]
         edge_attr = ea.to(dtype = torch.float32)
         
         return edge_attr
 
-
+'''
 ## Print
 
 make_data = MakeDataset(root_path=os.path.join('seq_dataset', 'stacking_5'))
@@ -132,7 +133,7 @@ print("\nEdge attr:\n", dataset.edge_attr) #shape (14,3)
 print("Node Feature:\n",dataset2.x) #Number of nodes: 8, node feature: 13 (8,13)
 print("\nEdge index:\n",dataset2.edge_index) #(2,14)
 print("\nEdge attr:\n", dataset2.edge_attr) #shape (14,3)
-
+'''
 def to_fully_connected(state_edge_index, state_edge_attr):
     edge_index_template = np.ones((9, 9), dtype=int)
     for idx in range(9):
@@ -149,7 +150,7 @@ def to_fully_connected(state_edge_index, state_edge_attr):
                 state_edge_index = torch.cat((state_edge_index, torch.tensor([[src],[dest]])), dim=1)
                 #state_edge_index[0].append(src)
                 #state_edge_index[1].append(dest)
-                state_edge_attr = torch.cat((state_edge_attr, torch.zeros(1, 13)), dim=0)
+                state_edge_attr = torch.cat((state_edge_attr, torch.zeros(1, 7)), dim=0)
                 #state_edge_attr.append(np.zeros((13), dtype=int))
     #print(state_edge_index.shape)
     #print(state_edge_attr.shape)
@@ -191,7 +192,7 @@ def concat_state_n_goal(state_edge_index, state_edge_attr, goal_edge_index, goal
                 cat_list.append(torch.cat((state_edge_attr[idx], goal_edge_attr[g_idx]), dim=0))
                 break
         if matched == False:
-            cat_list.append(torch.cat((state_edge_attr[idx], torch.zeros(13)), dim=0))
+            cat_list.append(torch.cat((state_edge_attr[idx], torch.zeros(7)), dim=0))
             
     cat_edge_attr = torch.stack(cat_list, dim=0)
     #print(state_edge_index.shape)
@@ -203,11 +204,6 @@ def concat_state_n_goal(state_edge_index, state_edge_attr, goal_edge_index, goal
 
 
 
-        
-
-
-
-    return cat_edge_index, cat_edge_attr
 
 def stacking_5_dataset():
     stacking_dataset = []
@@ -272,7 +268,10 @@ def stacking_5_dataset():
             graph_dict_data['target']['object'] = target_object_score
 
             graph_dict_data['info'] = block_order
-                       
+            #print(graph_dict_data['input']['state']['edge_index'])
+            #print(graph_dict_data['input']['state']['edge_attr'].shape)
+            #input()
+
             stacking_dataset.append(graph_dict_data)
 
     return stacking_dataset
@@ -285,10 +284,14 @@ print(stacking_dataset[0])
 #print(stacking_dataset[8]['input']['goal']['edge_index'])
 #print(stacking_dataset[8]['info'])\
 #save each graph in json file
+'''
 for i, g in enumerate(stacking_dataset):
-    file_path = "./stacking_dataset/stacking_"+str(i)
+    file_path = "./stacking_dataset_nopos/stacking_"+str(i)
     with open(file_path, "wb") as outfile:
         pickle.dump(g, outfile)
+
+
+'''
 '''
 with open("./stacking_dataset/stacking_"+str(10), "rb") as file:
     load_data = pickle.load(file)

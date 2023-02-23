@@ -50,6 +50,7 @@ class ActionModel(nn.Module):
             nn.Linear(self.hidden_dim, self.num_action),
             nn.LeakyReLU(),
         )
+        
         self.node_layers = nn.Sequential(
             nn.Linear(self.hidden_dim, self.hidden_dim),
             nn.LeakyReLU(),
@@ -58,14 +59,11 @@ class ActionModel(nn.Module):
             nn.Linear(self.hidden_dim, 1)
         )
 
-    def forward(self, input_data):
+    def forward(self, input_data, target_data):
         
         x = input_data['x']
         edge_index = input_data['edge_index']
         edge_attr = input_data['edge_attr']
-
-
-
 
 
 
@@ -94,7 +92,32 @@ class ActionModel(nn.Module):
         x = x.reshape(self.batch_size, -1, self.hidden_dim) #batch X node X hidden
         #print(x.shape)
 
-        action_input_emb = x.mean(axis=1)      # x feature를 합치는 과정 / 현재는 mean으로 (추후 변경 예정)
+
+        ############
+
+        target_object = target_data['object']
+        object_idx_tensor = (target_object==1).nonzero()[:,1]
+        #print(target_object)
+        #print(object_idx_tensor)
+        #input()
+        #for i in len(target_object):
+            #if 
+
+        x_selected = []
+        for i in range(self.batch_size):
+            #print(i.shape)
+            #x_selected.append(i[])
+            #print(object_idx_tensor[i].item())
+            #print(x[i,:,:].shape)
+            x_selected.append(x[i,object_idx_tensor[i],:])
+
+
+        action_input_emb = torch.stack(x_selected, dim=0)
+        #print(action_input_emb.shape)
+        #input()
+        ################
+
+        #action_input_emb = x.mean(axis=1)      # x feature를 합치는 과정 / 현재는 mean으로 (추후 변경 예정)
         #print("actopm=input",action_input_emb)
         #print(action_input_emb.shape) # batch X hidden
         #input()
@@ -106,7 +129,8 @@ class ActionModel(nn.Module):
     
     
         # action_prob = nn.Softmax(self.action_layers(action_input_emb))
-        
+        return action_prob
+        '''
         
         each_node = []
         x = x.reshape(-1, self.batch_size, self.hidden_dim)
@@ -120,5 +144,7 @@ class ActionModel(nn.Module):
         node_scores = torch.cat(each_node, dim=1)
         #print("node_scores", node_scores.shape)
         # print("\n[Each node]",each_node)
+        
 
         return action_prob, node_scores
+        '''
