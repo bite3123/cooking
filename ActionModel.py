@@ -35,28 +35,28 @@ class ActionModel(nn.Module):
 
         self.convs = [GINEConv(nn=nn.Sequential(nn.Linear(self.node_feature_size, self.hidden_dim),
                                                 nn.BatchNorm1d(self.hidden_dim),
-                                                nn.ReLU(),
+                                                nn.LeakyReLU(),
                                                 nn.Linear(self.hidden_dim, self.hidden_dim),
-                                                nn.BatchNorm1d(self.hidden_dim),
-                                                nn.ReLU(),),
+                                                #nn.BatchNorm1d(self.hidden_dim),
+                                                nn.LeakyReLU(),),
                                edge_dim=self.edge_feature_size),
                       GINEConv(nn=nn.Sequential(nn.Linear(self.hidden_dim, self.hidden_dim),
                                                 nn.BatchNorm1d(self.hidden_dim),
-                                                nn.ReLU(),
+                                                nn.LeakyReLU(),
                                                 nn.Linear(self.hidden_dim, self.hidden_dim),
-                                                nn.BatchNorm1d(self.hidden_dim),
-                                                nn.ReLU(),),
+                                                #nn.BatchNorm1d(self.hidden_dim),
+                                                nn.LeakyReLU(),),
                                edge_dim=self.edge_feature_size)]
         
         self.action_layers = nn.Sequential(
             nn.Linear(self.hidden_dim, self.hidden_dim),
             nn.BatchNorm1d(self.hidden_dim),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Linear(self.hidden_dim, self.hidden_dim),
             nn.BatchNorm1d(self.hidden_dim),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Linear(self.hidden_dim, self.num_action),
-            nn.ReLU(),
+            nn.LeakyReLU(),
         )
         
         self.node_layers = nn.Sequential(
@@ -99,9 +99,28 @@ class ActionModel(nn.Module):
 
 
         #144X64 -> (9X16)X64 = (num_node X batch)Xhidden_dim
-        x = x.reshape(self.batch_size, -1, self.hidden_dim) #batch X node X hidden
+        #print(x.shape)
+        #print(input_data['batch'])
+        #x = x.reshape(self.batch_size, -1, self.hidden_dim) #batch X node X hidden
+
+
+
+        print(x.shape)
+        print(input_data['batch'].shape)
+        batch_list = []
+        for i in range(input_data['batch'][-1]+1):
+            batch_list.append(x[(input_data['batch']==i).nonzero(as_tuple=False).reshape(-1),:])
+        x = torch.stack(batch_list)
+        #print(x.shape)
+        #input()
+
+
+
+
+
+        #x = x.reshape(-1, 9, self.hidden_dim)
         x_new = []
-        for i in range(self.batch_size):
+        for i in range(input_data['batch'][-1]+1):
             temp = []
             key_node = target_data[i]
             for node in key_node:

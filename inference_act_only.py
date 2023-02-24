@@ -12,7 +12,7 @@ import pickle
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device = "cpu"
 
-hidden_dim = 32
+hidden_dim = 128
 num_action = 3 # [pick, place, pour]
 node_feature_size = 6 #노드 feature 크기
 edge_feature_size = 14 # 노드 사이의 relation 종류 개수 [on_right,on_left, in_right, in_left, attach, in-grasp]
@@ -22,12 +22,16 @@ with open("./stacking_model_nopos_nofc_act_adam_CE/loss_data", "rb") as file:
     loss_data = pickle.load(file)
 #print((loss_data["epoch"], loss_data["test_loss"]))
 t_list = []
+train_list = []
 for t in loss_data["test_loss"]:
     t_list.append(t.detach().numpy())
+for train_loss in loss_data["train_loss"]:
+    train_list.append(train_loss)
 plt.plot(loss_data["epoch"], t_list)
+plt.plot(loss_data["epoch"], train_list)
 plt.show()
 
-saved_path = "./stacking_model_nopos_nofc_act_adam_CE/stacking_model_0.pth"
+saved_path = "./stacking_model_nopos_nofc_act_adam_CE/stacking_model_294.pth"
 
 saved_model = ActionModel(hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size)
 saved_model.load_state_dict(torch.load(saved_path))
@@ -67,6 +71,13 @@ for test_input, test_target, test_key_node in data_test_loader:
     loss_CE = nn.CrossEntropyLoss().to(device)
     L_CE = loss_CE(pred_action_prob, temp)
     print("CE:", L_CE)
+
+    print("Prediction Result:")
+    if torch.argmax(pred_action_prob, dim=1) == temp:
+        print("Success!")
+    else:
+        print("Failed TT")
+
 
     input()
 
