@@ -1,9 +1,0 @@
-,ID,Type_Bowl,Type_Box,Type_Table,Property_V_Velcro,Property_C_Contain,Property_G_Graspable,Position_t1,Position_t2,Position_t3,Position_t4,Position_b1,Position_b2,Position_table
-0,1,0,1,0,0.0,1,1,1,0,0,0,0,0,0
-1,2,0,1,0,0.0,1,1,0,1,0,0,0,0,0
-2,3,0,1,0,0.0,1,1,0,0,1,0,0,0,0
-3,4,0,1,0,0.0,1,1,0,0,0,1,0,0,0
-4,5,0,1,0,0.0,1,1,0,0,0,1,0,0,0
-5,6,1,0,0,0.0,1,1,0,0,0,0,1,0,0
-6,7,1,0,0,0.0,1,1,0,0,0,0,0,1,0
-7,8,0,0,1,0.0,0,0,0,0,0,0,0,0,1
