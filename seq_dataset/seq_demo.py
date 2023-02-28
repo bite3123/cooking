@@ -1,62 +1,55 @@
 import os
 import torch
 import pandas as pd
-import torch_geometric
 import numpy as np
 from torch.utils.data import Dataset
 from torch_geometric.data import Dataset
-import time
 import os
 import natsort
 import random
+import networkx as nx
+import matplotlib.pyplot as plt
+import PIL
+import re
+
+
+
 
 class MakeDataset(Dataset):
-    def __init__(self, problem, i):
-        
-        root_path = ['edge_features/edge_index','edge_features/edge_attr','node_features','action_sequence'] # 0,1,2,3
-
+    def __init__(self, problem, example):
         # Search path
         FILEPATH, _ = os.path.split(os.path.realpath(__file__))
-        search_path = os.path.join(FILEPATH, problem, root_path[i])
-        file_list = os.listdir(search_path)
-        order_file_list = natsort.natsorted(file_list) 
-        problem_path = os.path.join(FILEPATH, problem)
+        search_path = os.path.join(FILEPATH, problem, example)
+    
+       
 
         self.FILEPATH = FILEPATH
-        self.problem_path = problem_path
-        self.root_path = root_path
         self.search_path = search_path
-        self.order_file_list = order_file_list
         self.problem = problem
+        self.example = example
+      
 
-        # print(FILEPATH)
-        # print(search_path)
-        # print(problem)
-        # print(file_list)
-        # print(order_file_list)
-        # print(problem_path)
-        # print("[Search path]:",search_path)
-        # print("\n[Order file list]:",order_file_list)
-
-
-    def edge_feature(self, i): # i -> Number of the file lists e.g.) ['0_ef0.csv', '1_ef_pick4.csv']
-
-        # Search path
-        edge_path = os.path.join(self.search_path, self.order_file_list[i])
-        print(f"\n[{self.order_file_list[i]}]\n")
-
-        # Read csv file without new index column
-        self.ef_csv = pd.read_csv(edge_path, index_col=0) 
-        return self.ef_csv 
+        print("\n==========================================INIT======================================================")
+        print("\n[File path]",FILEPATH)
+        print("\n[Search_path]",search_path)
+        print("\n[Example]", example)
+        print("\n[Problem]", problem)
+        print("\n==========================================INIT======================================================")
     
 
-    def pick(self, i, obj1): # obj = ID number
-        
-        edge_path = os.path.join(self.search_path, self.order_file_list[i])
+    def pick(self, file_num, obj1): # obj = ID number
+        # Choose sample
+        sample_inx_path = os.path.join(self.search_path,'edge_index')
+        file_list = natsort.natsorted(os.listdir(sample_inx_path))
+
+        # edge_path = os.path.join(self.search_path, 'test/edge_index',file_list[file_num])
+        edge_path = os.path.join(self.search_path, 'edge_index',file_list[file_num])
         ef_csv = pd.read_csv(edge_path, index_col=0)
 
+      
         # Data type) column :'object', index = 'int64'
         pick_csv = ef_csv
+
 
         # Preconditions
         if obj1 in range(1,len(pick_csv.columns)-1): # Not robot-hand and table (The very first:robot-hand, The very last:table)
@@ -70,26 +63,32 @@ class MakeDataset(Dataset):
                 pick_csv.loc[obj1,'0'] = 1
                 pick_csv.loc[0,f'{obj1}'] = 1
 
-                self.obj1 = obj1
-                self.pick_csv = pick_csv
-               
-                print(f'\n[ef_pick{str(self.obj1)}.csv] \n') 
+          
+            
+                print(f'\n[ef_pick{str(obj1)}.csv] \n') 
 
-                return  self.pick_csv
+        
+                file_name = 'ei'+str(file_num+1)+'.csv'
+                save_path = os.path.join(self.search_path,'edge_index')
+                createFolder(save_path)
+                pick_csv.to_csv(os.path.join(save_path,file_name))
+                   
+
+                self.file_num = file_num
+                self.pick_csv = pick_csv
+            
+                return pick_csv
             
             else:
-                print("\n----Check the '.csv' file again----\nFile lists:", self.file_list)
+                print("\n----Check the '.csv' file again----\nFile lists:", file_list[file_num])
             
         else:
             print("\n----Cannot pick this object----\n")
 
+
         
-    def place(self, i, obj1, obj2):
-        edge_path = os.path.join(self.search_path, self.order_file_list[i])
-        ef_csv = pd.read_csv(edge_path, index_col=0)
-        self.obj1 = obj1
-        self.obj2 = obj2
-        place_csv = ef_csv
+    def place(self, obj1, obj2): 
+        place_csv = self.pick_csv
         
         # Check obj1 and obj2 range
         if obj1 in range(1,len(place_csv.columns)-1) and obj2 in range(1,len(place_csv.columns)-1):
@@ -106,405 +105,723 @@ class MakeDataset(Dataset):
                     place_csv.loc[obj1,'0'] = 0
                     place_csv.loc[0,f'{obj1}'] = 0
 
-                    self.place_csv = place_csv
-                    print(f'\n[ef_place_{str(self.obj1)}_on_{str(self.obj2)}.csv] \n') 
+                    
+                    print(f'\n[ef_place_{str(obj1)}_on_{str(obj2)}.csv] \n') 
 
-                    return self.place_csv
+
+                    file_name = 'ei'+str(self.file_num+2)+'.csv'
+                    save_path = os.path.join(self.search_path,'edge_index')
+                    createFolder(save_path)
+                    place_csv.to_csv(os.path.join(save_path,file_name))
+                    return place_csv
+                
                 else:
                     print("----Object1 and object2 are equal----")
             else:
-                print("\n----Robot hand does not hold obj1. Please check the '.csv' file again----\nFile lists:", self.file_list)
+                print("\n----Robot hand does not hold obj1. Please check the '.csv' file again----\nFile lists:", self.file_list[self.file_num+1])
         else:
             print("----Cannot place this object----")
+
+
+    def pour(self, file_num, obj1, obj2):
+        file = 'ei'+str(file_num)+'.csv'
+        edge_path = os.path.join(self.search_path, 'edge_index',file)
+        pour_csv = pd.read_csv(edge_path, index_col=0)
+        print("\n[Original]\n",pour_csv,'\n')
+        
+        # Node feature 따라서 만들고 obj1은 bowl이어야 함
+        if obj1 == 6 or obj1 == 7 :
+            for placed_obj in range(1,7):  # placed_obj 1 ~ 7
+
+                # Relation with obj1 (bowl) must be relative
+                if pour_csv.loc[obj1,f'{placed_obj}'] == 1 and pour_csv.loc[placed_obj,f'{obj1}'] == 1:
+                    # print(placed_obj)
+
+                    # Remove relation with obj1
+                    pour_csv.loc[obj1,f'{placed_obj}'] = 0
+                    pour_csv.loc[placed_obj,f'{obj1}'] = 0
+
+                    # Add relation with obj2
+                    pour_csv.loc[obj2,f'{placed_obj}'] = 1
+                    pour_csv.loc[placed_obj,f'{obj2}'] = 1
+                    
+                    # Repeat all applicable 'placed_obj' while if statement is true
+                    continue
+            print("\n[Change]\n",pour_csv)
+               
+            
+            file_name = 'ei'+str(file_num+1)+'.csv'
+            save_path = os.path.join(self.search_path,'edge_index')
+            createFolder(save_path)
+            pour_csv.to_csv(os.path.join(save_path,file_name))
+    
+        else:
+            print("----Object is not a bowl----")
+
     
         
-    def save_file(self, action):
+    def save_file(self, action,i):
        
         if action == 'pick':
-            action_pick = 'ef_pick'+ str(self.obj1) + '.csv'
+            action_pick = 'ef_'+ str(i) + '.csv'
             self.pick_csv.to_csv(os.path.join(self.search_path, action_pick))
             print("\n", action_pick,"is saved")
 
         elif action == 'place':
-            action_place = 'ef_place' + str(self.obj1) + '_on_'+ str(self.obj2)+ '.csv'
+            action_place = 'ef_ '+ str(i) + '.csv'
             self.place_csv.to_csv(os.path.join(self.search_path, action_place))
             print("\n", action_place,"is saved")
+
+        elif action == 'pour':
+            action_pour = 'ef_ '+ str(i) + '.csv'
+            self.pour_csv.to_csv(os.path.join(self.search_path, action_place))
+            print("\n", action, "is saved")
 
         else:
             print("----Wrong action----")
 
-    def init_edge_attr(self):
+
+    def init_edge_attr(self, file_num):
+    
         list_attr = []
-        list_r = []
-        list_l = []
 
         # Dataframe
-        ef = self.ef_csv
+        file = 'ei'+str(file_num)+'.csv'
+        edge_path = os.path.join(self.search_path, 'edge_index',file)
+        ef = pd.read_csv(edge_path, index_col=0)
+           
+        list_attr1 = []
+        list_attr0 = []
 
-        # Collect index and column which value is 1 / Table column, index = 7
-        for index in range(len(ef.index)):
-            for column in range(len(ef.index)):
-                if ef.iat[index, column] == 1:    
-                    list_attr.append((index, column))
-                    if column == 8:
-                        list_r.append(column)
-                        list_on_table_r = [1 for i in range(len(list_r))]
-                    elif index == 8:
-                        list_l.append(index)
-                        list_on_table_l = [0 for i in range(len(list_l))]
-                        list_on_r = list_on_table_r + list_on_table_l
-                        list_on_l = list_on_table_l +  list_on_table_r 
-                        
+        ID_list = list(map(int, ef.columns))
+        for index in range(len(ID_list)):
+            for column in range(len(ID_list)):
+                if ef.iat[index, column] == 1:   
+                    list_attr1.append((ID_list[index], ID_list[column]))
+                elif ef.iat[index, column] == 0 and ID_list[index] != ID_list[column]:
+                    list_attr0.append((ID_list[index], ID_list[column]))
 
-                    # Only table has a relationship
-                        list_0 = [0 for i in range(len(list_attr))]
+        list_attr = list_attr1 + list_attr0
 
-                        edge_attr_csv = pd.DataFrame({'ID': list_attr, 'rel_on_right':list_on_r, 'rel_on_left': list_on_l, \
-                                                      'rel_in_right':list_0, 'rel_in_left': list_0, 'rel_attach':list_0, \
-                                                      'rel_in_grasp':list_0, 'rel_grasp': list_0})
+        print("[list1]",list_attr1,'\n')
+        print(list_attr, "length", len(list_attr))
 
-    
-                    # Save path
-                        final_path = os.path.join(self.problem_path, self.root_path[1], 'init_ea0.csv')
-                        edge_attr_csv.to_csv(final_path, index = False) # Remove index when file is saved
-                      
+        list_0 = [0 for i in range(len(list_attr1))]
+
+        edge_attr0_csv = pd.DataFrame({'ID': list_attr1, 'rel_on_right':list_0, 'rel_on_left': list_0, \
+                                        'rel_in_right':list_0, 'rel_in_left': list_0, 'rel_attach':list_0, \
+                                        'rel_in_grasp':list_0, 'rel_grasp': list_0, 'pos_x': list_0, 'pos_y': list_0, 'pos_z': list_0, \
+                                        'pos_roll':list_0, 'pos_pitch':list_0, 'pos_yaw':list_0})
+
+        edge_attr0_csv = edge_attr0_csv.set_index("ID")
+
+
+
+        # SAVE PATH (edge_attr)
+        save_attr_path = os.path.join(self.search_path, 'edge_attr')
+        createFolder(save_attr_path)
+        file = 'ea'+str(file_num)+'.csv'
+        save_csv = os.path.join(save_attr_path, file)
+        edge_attr0_csv.to_csv(save_csv) 
                     
-        print("\n[init_ea0.csv]\n",edge_attr_csv)        
+        print("\n[init_ea0.csv]\n",edge_attr0_csv)        
         print("\n----Edge attribute is saved----")
 
 
-    def Call(self,problem, file1, file2): # i = range(0,8)
-        nf_path = os.path.join(self.FILEPATH,problem , 'node_features/nf0.csv')
-        ef_index_path = os.path.join(self.problem_path, self.root_path[0], file1)
-        ef_attr_path = os.path.join(self.problem_path, self.root_path[1],file2)
 
-        node_feature = pd.read_csv(nf_path)
-        edge_index = pd.read_csv(ef_index_path)
-        edge_attr = pd.read_csv(ef_attr_path)
 
-        self.node_feature = node_feature
+    ##########################Call informations################################
+    def sample_data(self, i): # i = range(0,8)
+        # Node feature path
+        nf_path = os.path.join(self.FILEPATH, self.problem , 'node_features','nf0.csv')
+
+        # Edge index path
+        index_path = os.path.join(self.search_path, 'edge_index')
+        ei_file_list = natsort.natsorted(os.listdir(index_path))
+        ei_path = os.path.join(index_path,ei_file_list[i])
+
+        # Edge attribute path
+        attr_path = os.path.join(self.search_path, 'edge_attr')
+        ea_file_list = natsort.natsorted(os.listdir(attr_path))
+        ea_path = os.path.join(attr_path,ea_file_list[i])
+
+        node_feature = pd.read_csv(nf_path, index_col=0)
+        edge_index = pd.read_csv(ei_path, index_col=0)
+        edge_attr = pd.read_csv(ea_path, index_col=0)
+
+        self.x = node_feature
         self.edge_index = edge_index
         self.edge_attr = edge_attr
 
-        print("\n[Node feature]:\n", node_feature)
-        print("\n[Edge index]:\n", edge_index)
-        print("\n[Edge_attribute]:\n", edge_attr)
+        # print("\n[Node feature]:\n", node_feature)
+        # print("\n[Edge index]:\n", edge_index)
+        # print("\n[Edge_attribute]:\n", edge_attr)
+        # print("\n[Index path]\n", index_path)
+        # print("\n[ei file list]\n", ei_file_list)
 
-
-
-    def make_digraph(self):
-        import networkx as nx
-        import matplotlib.pyplot as plt
-        import my_networkx as my_nx
-       
+        return self.x, self.edge_index, self.edge_attr
         
-        list_edge_index = []
-        list_edge_attr = []
-
-        # Make nodes
-        nodes = self.node_feature['ID'].tolist()
-
-        # Connect edge
-        ea = self.edge_attr['ID'].to_list()
-        print("[ea]:",ea)
-        column = self.edge_attr.columns
-    
-        for i in range(len(ea)):
-            ei = eval(ea[i])
-            list_edge_index.append(ei)
-            
-            for j in range(len(column)):
-                if self.edge_attr.at[i, column[j]] == 1:
-                    list_edge_attr.append(column[j])
-        
-           
-        print("\n[List edge index]:",list_edge_index)
-        print("\n[List edge attribute]:",list_edge_attr)
-
-        plt.figure(figsize=(16,8))
-
-        g = nx.DiGraph()
-        g.add_nodes_from(nodes)
-        for i in range(len(list_edge_attr)):
-            g.add_edges_from([list_edge_index[i]], label = f'{list_edge_attr[i]}')
 
 
-        pos = nx.shell_layout(g)
-        curved_edges = [edge for edge in g.edges() if reversed(edge) in g.edges()]
-        straight_edges = list(set(g.edges()) - set(curved_edges))
-        arc_rad = 0.20
-        # edge_labels = nx.get_edge_attributes(g,'label')
 
-        edge_labels = dict([((u, v,), f'{d["label"]}\n\n\n{g.edges[(v,u)]["label"]}')
-                for u, v, d in g.edges(data=True) if pos[u][0] > pos[v][0]])
-        
-        # edge_labels = dict([((u,v), (d['label']))
-        #      for u,v,d in g.edges(data=True)])
-        print("\n[Edge labels]:",edge_labels)
-        
-        # curved_edge_labels = {edge: list_edge_attr[edge] for edge in curved_edges}
-        # straight_edge_labels = {edge: list_edge_attr[edge] for edge in straight_edges}
-    
-        nx.draw_networkx_nodes(G=g, pos= pos, nodelist= nodes, cmap=plt.cm.Blues, alpha = 0.9, node_size = 1000, node_shape='h')
-        nx.draw_networkx_edges(G=g, pos= pos, edgelist= list_edge_index, connectionstyle=f'arc3, rad = {arc_rad}', edge_cmap = plt.cm.Greys, style='dashed')
-        nx.draw_networkx_labels(G=g, pos=pos, font_family='sans-serif', font_color='black', font_size = 12)
-        nx.draw_networkx_edge_labels(G= g, pos = pos, edge_labels = edge_labels, font_size = 12)
-        # my_nx.my_draw_networkx_edge_labels(G= g, pos=pos,  edge_labels=curved_edge_labels,rotate=False,rad = arc_rad)
-        # nx.draw_networkx_edge_labels(G=g, pos=pos, edge_labels=straight_edge_labels,rotate=False)
-        # nx.draw(G= g, pos = pos, with_labels = True)
-       
-        # # nx.draw_networkx_edge_labels(G= g,pos=pos, edge_labels = edge_labels)
-        # edge_labels=dict([((u,v,),d['label'])
-        #      for u,v,d in g.edges(data=True)])
-
-        plt.title("Present state")
-        plt.show()
-
-
-    def make_graph(self):
-        import networkx as nx
-        import matplotlib.pyplot as plt
-        import my_networkx as my_nx
-        # Weight 부여되면 굵어지게
-        
-        list_edge_index = []
-        list_edge_attr = []
-
-        # Make nodes
-        nodes = self.node_feature['ID'].tolist()
-
-        # Connect edge
-        ea = self.edge_attr['ID'].to_list()
-        column = self.edge_attr.columns
-    
-        for i in range(len(ea)):
-            ei = eval(ea[i])
-            list_edge_index.append(ei)
-            
-            for j in range(len(column)):
-                if self.edge_attr.at[i, column[j]] == 1:
-                    if column[j] == 'rel_on_right':
-                        attr = column[j].replace('rel_on_right', 'On')
-                    elif column[j] == 'rel_on_left':
-                        attr = column[j].replace('rel_on_left', 'On')
-                    elif column[j] == 'rel_in_grasp':
-                        attr = column[j].replace('rel_in_grasp', 'Grasp')
-                    elif column[j] == 'rel_grasp':
-                        attr = column[j].replace('rel_grasp','Grasp')
-                    elif column[j] == 'rel_attach':
-                        attr = column[j].replace('rel_attach','Attach')
-                    else:
-                        attr = column[j]
-                    list_edge_attr.append(attr)
-        
-           
-        print("\n[List edge index]:",list_edge_index)
-        print("\n[List edge attribute]:",list_edge_attr)
-
-        plt.figure(figsize=(10,6))
-
-        g = nx.Graph()
-
-        g.add_nodes_from(nodes)
-        for i in range(len(list_edge_attr)):
-            g.add_edges_from([list_edge_index[i]], label = f'{list_edge_attr[i]}')
-
-
-        pos = nx.shell_layout(g)
-    
-        edge_labels = nx.get_edge_attributes(g,'label')
-        print("\n[Edge labels]:",edge_labels)
-
-    
-        nx.draw_networkx_nodes(G=g, pos= pos, nodelist= nodes, cmap=plt.cm.Blues, alpha = 0.9, node_size = 1000, node_shape='h')
-        nx.draw_networkx_edges(G=g, pos= pos, edgelist= list_edge_index, edge_cmap = plt.cm.Greys)
-        nx.draw_networkx_labels(G=g, pos=pos, font_family='sans-serif', font_color='black', font_size = 12)
-        nx.draw_networkx_edge_labels(G= g, pos = pos, edge_labels = edge_labels, font_size = 12)
-   
-        plt.title("Present state")
-        plt.axis('off')
-        plt.show()
-
-
-    
-    def has_duplicates2(self,problem,a):
+    ############################################# Make Edge indexes##########################################
+    def make_edge_index(self, i):
         list_num = [1,2,3,4,5]
         list_index = []
-        
-        for i in range(890):
+
+        unique = 0
+        while unique < 120:
+            unique =  unique + 1
+            # list(1~5 사이 숫자들 랜덤 배열) - 중복 허용해서 나옴
             sample_list = random.sample(list_num,5)
             list_index.append(sample_list)
-            
             seen = []
+            
+            # 중복 제거하고 120개 전부 출력될 때까지 돌림
             unique_list = [x for x in list_index if x not in seen and not seen.append(x)] 
-
-            if len(unique_list) == 120:
-                break
+            unique = len(unique_list) 
+                
             
-            # index) int - list, column) string - list
-            str_sample = [str(x) for x in sample_list]
-           
-        
+            # Data type 맞추기 - index) int - list, column) string - list
+            str_sample = [str(x) for x in sample_list]       
             index_list = [0] + sample_list+ [6,7,8]
-            column_list = ['ID', '0'] + str_sample + ['6','7','8']
+            column_list = ['0'] + str_sample + ['6','7','8']
             
+
             # Change Index and column
-            self.edge_index["ID"] = index_list
-            self.edge_index.columns = column_list
+            self.edge_index.index = index_list 
+            self.edge_index.index.name = "ID" # Setting index name = 'ID'
+            self.edge_index.columns = column_list 
             change_edge_index = self.edge_index
             # print(change_edge_index)
             
+            # Make folders
             folder_name = f"{str_sample[0]}_{str_sample[1]}_{str_sample[2]}_{str_sample[3]}_{str_sample[4]}"
             self.str_sample = str_sample
             print(folder_name)
             print(change_edge_index)
           
-            # SAVE PATH (edge_index)
-            # save_path = os.path.join(self.FILEPATH,problem,'edge_data',folder_name, self.root_path[0])
-            # save_path = os.path.join(self.FILEPATH,problem,'edge_data',folder_name, self.root_path[1])
-            # createFolder(save_path)
-            # SAVE CSV FILE (edge_index) #root_path[0]인 경우만
-            # save_csv = os.path.join(save_path,'ef' +str(a)+'.csv')
-            # change_edge_index.to_csv(save_csv, index=False) # Without auto-indexing
+            # # SAVE PATH (edge_index)
+            save_inx_path = os.path.join(self.FILEPATH, self.problem, 'edge_features',folder_name, 'edge_index')
+            createFolder(save_inx_path)
+            
+            # # SAVE CSV FILE (edge_index) #root_path[0]인 경우만
+            save_csv = os.path.join(save_inx_path, str(folder_name)+'_ei' +str(i)+'.csv')
+            change_edge_index.to_csv(save_csv) 
 
         print((len(list_index), len(unique_list)))
         print("----Re indexing----")
   
 
-    def make_edge_index_change(self): #### ATTRIBUTE 제작
-        for i in range (0,9):
-            # PATH 정리하기
-            read_pt = os.path.join(self.problem_path, self.root_path[1])
-            order_file_list = natsort.natsorted(os.listdir(read_pt)) 
-            read_path = os.path.join(read_pt, order_file_list[i])
-            edge_order = os.path.join(self.FILEPATH,'stacking_5/edge_data')
-            edge_order_files = os.listdir(edge_order)
+    ############################################# Make Edge attributes##########################################
+    def make_edge_attr(self,i): 
+        # print(ef.at[0,'2'])
+        # edge_index: [2, num_edges], edge_attr: [num_edges, dim_edge_features]
+        edge_feature_path = os.path.join(self.FILEPATH, self.problem, 'edge_features')
+        order_file_list = natsort.natsorted(os.listdir(edge_feature_path))
+      
+        # Call info from new edge_index 
+        for order in order_file_list:
+            inx_search_path = os.path.join(edge_feature_path, order, 'edge_index')
+            inx_file_list = natsort.natsorted(os.listdir(inx_search_path))
+            inx_path = os.path.join(inx_search_path, inx_file_list[i])
+            # print("\n[Order]", order)
 
-            for order in edge_order_files:
-                # Search path
-                edge_index_pt = os.path.join(self.FILEPATH,'stacking_5/edge_data', order, self.root_path[0])
-                order_file_list_p = natsort.natsorted(os.listdir(edge_index_pt)) 
-                edge_index_path = os.path.join(edge_index_pt, order_file_list_p[i]) 
+            # # # Read csv file to tensor
+            ef = pd.read_csv(inx_path, index_col=0)
+            # print("\n[Edge index]\n",ef)
+           
+            list_attr1 = []
+            list_attr0 = []
+
+            ID_list = list(map(int, ef.columns))
+            for index in range(len(ID_list)):
+                for column in range(len(ID_list)):
+                    if ef.iat[index, column] == 1:   
+                        list_attr1.append((ID_list[index], ID_list[column]))
+                    elif ef.iat[index, column] == 0 and ID_list[index] != ID_list[column]:
+                        list_attr0.append((ID_list[index], ID_list[column]))
+
+            list_attr = list_attr1 + list_attr0
+            # print(list_attr, "length", len(list_attr))
+                  
+
+            # Original data
+            ea_example = self.edge_attr
+            print("\n[Original]\n",ea_example)
+            
+
+            # Changed data
+            ea_example.index = list_attr
+            ea_example.index.name = "ID"
+            edge_attr_csv = ea_example
+            print("\n[New]\n",edge_attr_csv)
+
+
+            # SAVE PATH (edge_attr)
+            save_attr_path = os.path.join(edge_feature_path, order,'edge_attr')
+            createFolder(save_attr_path)
+            save_csv = os.path.join(save_attr_path, str(order)+'_ea' +str(i)+'.csv')
+            edge_attr_csv.to_csv(save_csv) 
+   
+
+    ############################## Make graph ##################################
+
+    def make_graph(self, fig_num, pos):
+        
+        # Weight 부여되면 굵어지게
+  
+        list_edge_attr = []
+        list_edge_on = []
+        list_edge_grasp = []
+        list_node_pair = []
+
+        # Make nodes
+        nodes = self.x.index.to_list()
+
+        # Connect edge
+        ea_inx = self.edge_attr.index.to_list()
+        
+        for tar in ea_inx:
+            ret = [int(k) for k in re.split('[^0-9]', tar) if k]
+            # print(ret)
+            if ret != [0]:
+                list_node_pair.append(tuple(ret))
+            else:
+                pass
+        print("\n[List node pair]",list_node_pair)
+        
+        
+
+        # edge_attr의 column 데이터 list로 가져오기
+        col = self.edge_attr.columns.to_list()
+
+
+        # edge_attr file에서 'rel'이 들어간 문자열 정보 가져오기 
+        ea_col = [col[i] for i in range(len(col)) if col[i].find('rel') == 0]    
+
+        print("\n[ea col]",ea_col)
+     
+        
+        #  Relation 보기 간편하게 바꿔줌 string -> tuple
+        for i in range(len(ea_inx)):
+            for j in range(len(ea_col)):
+                if self.edge_attr.at[ea_inx[i], ea_col[j]] == 1:
+                    if ea_col[j] == 'rel_on_right':
+                        attr = ea_col[j].replace('rel_on_right', 'On')
+                        list_edge_on.append(attr)
+                    elif ea_col[j] == 'rel_on_left':
+                        attr = ea_col[j].replace('rel_on_left', 'On')
+                        list_edge_on.append(attr)
+                    elif ea_col[j] == 'rel_in_right':
+                        attr = ea_col[j].replace('rel_in_right', 'In')
+                    elif ea_col[j] == 'rel_in_left':
+                        attr = ea_col[j].replace('rel_in_left', 'In')
+                    elif ea_col[j] == 'rel_in_grasp':
+                        attr = ea_col[j].replace('rel_in_grasp', 'Grasp')
+                        list_edge_grasp.append(attr)
+                    elif ea_col[j] == 'rel_grasp':
+                        attr = ea_col[j].replace('rel_grasp','Grasp')
+                        list_edge_grasp.append(attr)
+                    elif ea_col[j] == 'rel_attach':
+                        attr = ea_col[j].replace('rel_attach','Attach')
+                    else:
+                        print("----Re-check relations----")
+                    list_edge_attr.append(attr)
+    
+        
+        print("\n[List edge attribute]:",list_edge_attr)
+     
+
+        ################### Make graph ####################
+        import matplotlib.pyplot as plt
+        import networkx as nx
+        import PIL
+        
+        
+        # Image URLs for graph nodes
+        icons = {
+            "Robot0": f"{self.FILEPATH}/icons/robot_hand.jpeg",
+            "Block1": f"{self.FILEPATH}/icons/block1.jpg",
+            "Block2": f"{self.FILEPATH}/icons/block2.jpg",
+            "Block3": f"{self.FILEPATH}/icons/block3.jpg",
+            "Block4": f"{self.FILEPATH}/icons/block4.jpg",
+            "Block5": f"{self.FILEPATH}/icons/block5.jpg",
+            "Bowl6": f"{self.FILEPATH}/icons/bowl6.jpeg",
+            "Bowl7": f"{self.FILEPATH}/icons/bowl7.webp",
+            "Table": f"{self.FILEPATH}/icons/table_icon.jpg",
+        }
+
+        # Load images
+        images = {k: PIL.Image.open(fname) for k, fname in icons.items()}
+        
+        
+        # Generate graph
+        g = nx.Graph()
+        
+    
+        # Add nodes
+        # g.add_nodes_from(nodes, images = images["Block1"])
+        g.add_node(0, images = images["Robot0"])
+        g.add_node(1, images = images["Block1"])
+        g.add_node(2, images = images["Block2"])
+        g.add_node(3, images = images["Block3"])
+        g.add_node(4, images = images["Block4"])
+        g.add_node(5, images = images["Block5"])
+        g.add_node(6, images = images["Bowl6"])
+        g.add_node(7, images = images["Bowl7"])
+        g.add_node(8, images = images["Table"])
+        
+        
+       
+        # Add edges
+        for i in range(len(list_edge_attr)):
+            g.add_edges_from([list_node_pair[i]], label = f'{list_edge_attr[i]}')
+         
+               
                 
-                # print("\n[Edge Order]", edge_order)
-                # print("\n[Order File lists]", order_file_list)
-                # print("\n[Order File lists edge", order_file_list_p)
-                # print("\n[Read Path]", read_path) #ea
-                # print("\n[Edge Index Path]", edge_index_path) #ef
+        edge_labels = nx.get_edge_attributes(g,'label')
+        print("\n[Edge labels]:",edge_labels)
+      
 
-            
-                # Read csv file to tensor
-                ef = pd.read_csv(edge_index_path, index_col=0)
-                # print(ef)
-                ef_index = ef.index.to_list()
-                # print(ef.at[0,'2'])
-                # edge_index: [2, num_edges], edge_attr: [num_edges, dim_edge_features]
+        # POS 1 사진으로 node image 가져오는 것 가능
+        
+        # pos 지정 => x,y 좌표 array값으로 받아서 사용할 수 있음
+        # manually specify node position
+        # pos = nx.spring_layout(g)
+        # pos = nx.shell_layout(g)
+        
+        #check the position
+
+        # Get a repreducible layout and create figure
+        fig, ax = plt.subplots() 
+        
+        # Transform from data coordinates
+        tr_figure = ax.transData.transform
+        # Transform from display to figure coordinates
+        tr_axes = fig.transFigure.inverted().transform
+
+       
+         
+        # Select the size of the image
+        icon_size =  0.065 #(ax.get_xlim()[1] - ax.get_xlim()[0])*0.08 # 0.08
+        icon_center = icon_size / 2.0                          # 0.025
+      
+        
+        # Show title
+        title_font = {'fontsize':14, 'fontweight':'bold'}
+        plt.title("Present state", fontdict=title_font)  
+        
+        
+
+        egrasp = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "Grasp"]
+        eon = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "On"]
+        ein = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "In"]
+        eattach = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "Attach"]
+
+        
+        # Draw edges from edge attributes
+        # styles = ['filled', 'rounded', 'rounded, filled', 'dashed', 'dotted, bold']
+        nx.draw_networkx_edges(G=g, pos=pos, edgelist=egrasp, width=6, alpha=0.5, edge_color="b", style= "dotted")
+        nx.draw_networkx_edges(G=g, pos=pos, edgelist=eon, width=3, alpha=0.5, edge_color="black")
+        nx.draw_networkx_edges(G=g, pos=pos, edgelist=ein, width=4, alpha=0.5, edge_color="r")
+        nx.draw_networkx_edges(G=g, pos=pos, edgelist=eattach, width=4, alpha=0.5, edge_color="r")
+
+        # Draw edge labels from edge attributes
+        nx.draw_networkx_edge_labels(G= g, pos = pos, ax=ax, edge_labels = edge_labels, font_size = 10)
+      
+        
                 
-                ####################### Recommend to change ################
-                ## Edge index
-                list_attr = []
-                list_i = []
-                list_c = []
-            
-                for ef_index in range(len(ef_index)):
-                    for column in range(len(ef.columns)):
-                        if ef.at[ef_index, str(column)] == 1:    # Recommend to change '.iat' to speed up
-                            list_i.append(ef_index)
-                            list_c.append(column)
-                            list_attr.append((ef_index, column))
-                print(list_attr)
+        for n in g.nodes:
+            xf, yf = tr_figure(pos[n])
+            xa, ya = tr_axes((xf, yf))
 
-                ea_example = pd.read_csv(read_path,index_col=0)
-                print("\n원본\n",ea_example)
-            
-                
-                ea_example.index = list_attr
-                ea_example.index.name = "ID"
-                edge_attr_csv = ea_example
-                print("\n뉴\n",edge_attr_csv)
+            # get overlapped axes and plot icon
+            a = plt.axes([xa-icon_center, ya-icon_center , icon_size, icon_size])
+            a.set_aspect('equal')
+            a.imshow(g.nodes[n]['images']) # print(g.nodes[n]) #dictionary에 'image' -> 'images'로 변경됨
+            a.axis("off")
+             
+        
+        # plt.figure(figsize=(10,8))  
+        plt.show()
 
-            
-                # Save file
-                folder_name = 'ea'+ str(i) + '.csv'
-                save_path = os.path.join(self.FILEPATH,'stacking_5/edge_data',order, self.root_path[1], folder_name)
-                # createFolder(save_path)
-                print(save_path)
-            
-                edge_attr_csv.to_csv(save_path) # Remove index when file is saved
+
+    ############################################## With velcro objects ################################################
+    # def velcro_stack(self):
+    #     pass
+
+
+
+################################ Creating Folders ##############################################3
 
 def createFolder(directory):
     try:
         if not os.path.exists(directory):
             os.makedirs(directory)
+        else:
+            pass
     except OSError:
         print ('Error: Creating directory.'  +  directory)
 
 
-### Checking paths
-# Root path: ['edge_features/edge_index','edge_features/edge_attr','node_features','action_sequence'] # 0,1,2,3
-# file_path: ['```1.csv`,'```0.csv`]
 
-make_data = MakeDataset(problem = 'stacking_5/ex_1_2_3_4_5', i=0)
+stack_pos0 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
 
+stack_pos1 = {
+    0: [0.60, 0.5],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
 
+stack_pos2 = {
+    0: [0.65, 0.45],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.6, 0.35],
+    4: [0.5, 0.5],
+    5: [0.5, 0.3],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
 
-for a in range(0,1): # a (0~8)
-    make_data.Call(problem = 'stacking_5',file1='ef' +str(a)+'.csv', file2='ea'+str(a)+'.csv')
-
-    # Show graph
-    # print(make_data.make_graph())
-
-    ######################### MAKE edge_index folders and .csv files #############################
-    re_index = make_data.has_duplicates2(problem='stacking_5',a=a)
-    print(make_data.make_edge_index_change())
-
-
-
-# print(make_data.edge_feature(i=0))
-# make_data.init_edge_attr()
-
-
-
-
-    # print(make_data.make_edge_index_change())
-
-# print(make_data.pick(i=2, obj1=1))
-# print(make_data.place(i=1, obj1=1, obj2=2))  # e.g.) obj1=3, obj2=4 -> obj1->obj2
-
-
-# print(make_data.pick(i=0, obj1= 2))
-
-
-# print(make_data.place(i=3,obj1=2, obj2=3))
-
-
-# make_data.save_file(action='pick')
-# make_data.save_file(action='place')
-
-
-
-
-
-### Creating folders ###
-
-# # Stacking blocks 
-# for i in range(1,8):
-#     for j in range(1,8):
-#         if i != j:
-#             folder_name = f"{i}_{j}"
-#             break
-
-# make_data.createFolder(f'/home/jeni/Desktop/dataloader/seq_dataset/stacking_5/action_sequence')
-# make_data.createFolder(f'/home/jeni/Desktop/dataloader/seq_dataset/stacking_5/edge_features/edge_attr')
-# make_data.createFolder(f'/home/jeni/Desktop/dataloader/seq_dataset/stacking_5/edge_features/edge_index')
-# make_data.createFolder(f'/home/jeni/Desktop/dataloader/seq_dataset/stacking_5/node_features')
-            
+stack_pos3 = {
+    0: [0.6, 0.5],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.6, 0.35],
+    4: [0.5, 0.5],
+    5: [0.5, 0.3],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
 
 
+stack_pos4 = {
+    0: [0.6, 0.5],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.5, 0.7],
+    4: [0.5, 0.5],
+    5: [0.5, 0.3],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+
+stack_pos5 = {
+    0: [0.4, 0.6],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.5, 0.7],
+    4: [0.5, 0.5],
+    5: [0.5, 0.3],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+
+
+stack_pos6 = {
+    0: [0.4, 0.6],
+    1: [0.35, 0.3],
+    2: [0.5, 0.9],
+    3: [0.5, 0.7],
+    4: [0.5, 0.5],
+    5: [0.5, 0.3],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+
+
+stack_pos7 = {
+    0: [0.35, 0.6],
+    1: [0.35, 0.3],
+    2: [0.5, 0.9],
+    3: [0.5, 0.7],
+    4: [0.5, 0.5],
+    5: [0.5, 0.3],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+
+
+stack_pos8 = {
+    0: [0.35, 0.5],
+    1: [0.5, 1.1],
+    2: [0.5, 0.9],
+    3: [0.5, 0.7],
+    4: [0.5, 0.5],
+    5: [0.5, 0.3],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+
+stack_pos = [stack_pos0, stack_pos1, stack_pos2, stack_pos3, stack_pos4, stack_pos5, stack_pos6, stack_pos7, stack_pos8]
+
+
+mix_pos0 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+
+mix_pos1 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+
+mix_pos2 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos3 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos4 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos5 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos6 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos7 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos8 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos9 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos10 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
+mix_pos11 = {
+    0: [0.33, 0.35],
+    1: [0.33, 0.28],
+    2: [0.40, 0.35],
+    3: [0.67, 0.28],
+    4: [0.60, 0.35],
+    5: [0.5, 0.38],
+    6: [0.3, 0.2],
+    7: [0.7, 0.2],
+    8: [0.5, 0.1]
+}
 
 
 
 
+
+
+mix_pos = [mix_pos0, mix_pos1,mix_pos2,mix_pos3,mix_pos4,mix_pos5,mix_pos6,mix_pos7,mix_pos8,mix_pos9,mix_pos10,mix_pos11]
 
 
 

@@ -3,19 +3,21 @@ import torch
 import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset
+from torch.utils.data import  random_split
 from torch_geometric.data import Data
 from torch_geometric.utils import subgraph
 import pickle
 
 ## Dataset
 class ReadDataset():
-    def __init__(self, task):
+    def __init__(self, task, sort_edge=True):
         # Search path
         # task: stacking / mixing / ...
         self.search_path = os.path.join(os.getcwd(), 'seq_dataset',task)
-
         print("search_path:",self.search_path)
-            
+        
+        self.sort_edge = sort_edge
+
     # Getting node features
     def node_feature(self, csv_file='nf0.csv'):
         # Search path
@@ -36,6 +38,9 @@ class ReadDataset():
         
         # Read csv file to tensor
         ea_csv = pd.read_csv(edge_attr_path, index_col=0)
+        if self.sort_edge:
+            ea_csv = ea_csv.sort_index()
+
         ea = torch.Tensor(ea_csv.values) # dataframe to tensor
         edge_attr = ea.to(dtype = torch.float32)
         
@@ -54,25 +59,26 @@ class ReadDataset():
         edge_index, edge_attr = self.edge_features(order, i)
         
         return Data(x, edge_index, edge_attr)
-    
+
+#data checking
 #mix = ReadDataset('mixing_5')
 #ex = mix.graph_data(order='1_2_3_5_4', i=3)
 
 #print(ex['x'].shape, ex['edge_index'].shape, ex['edge_attr'].shape)
+#print(ex['edge_index'])
+#print(ex['edge_attr'])
 
 
 
-
-
-
-    
 
 
 class CollectGraph():
-    def __init__(self, goal_next=False, key_node=False, ):
+    def __init__(self, goal_next=False, key_node=False, concat_goal=True, fc_graph=True):
         self.goal_next = goal_next
         self.action_encoder = {'pick':[1, 0, 0], 'place':[0, 1, 0], 'pour':[0, 0, 1]}
-
+        self.key_node = key_node
+        self.concat_goal = concat_goal
+        self.fc_graph = fc_graph
         #key_node check
         #concat check
             #edge_attr order check
@@ -82,12 +88,13 @@ class CollectGraph():
     def collect_graph(self):
         collect_graph = []
 
-        collect_graph.append(self.collect_stacking())
-        collect_graph.append(self.collect_mixing())
+        collect_graph.extend(self.collect_stacking5())
+        collect_graph.extend(self.collect_mixing5())
 
+        return collect_graph
 
-    def collect_stacking(self):
-        stacking_graph = []
+    def collect_stacking5(self):
+        stacking5_graph = []
         stack_5 = ReadDataset(task='stacking_5')
 
         x = stack_5.node_feature()
@@ -107,126 +114,121 @@ class CollectGraph():
 
                 if self.goal_next:
                     goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i+1)
+
+                cat_edge_attr = torch.cat((state_edge_attr, goal_edge_attr), dim=1)
                 
-                #cat_edge_index, cat_edge_attr = self.concat_state_n_goal(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
+                action_code = torch.Tensor(self.action_encoder[stack_action[i]])
 
-        
-    
-
-
-def stacking_5_dataset():
-    stacking_dataset = []
-
-    make_data = CollectGraph(root_path=os.path.join('seq_dataset', 'stacking_5'))
-    x = make_data.node_feature(csv_file='nf0.csv', root_dir='node_features')
-
-    action_sequence = ['pick','place','pick','place','pick','place','pick','place']
-    action_encoder = {'pick':[1, 0, 0], 'place':[0, 1, 0], 'pour':[0, 0, 1]}
-    target_object_sequence = [4, 5, 3, 4, 2, 3, 1, 2]
-
-    block_order_list = os.path.join(make_data.search_path, 'edge_data')
-    for block_order in os.listdir(block_order_list):
-        #goal_edge_index= make_data.edge_index(csv_file='ef8.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
-        #goal_edge_attr = make_data.edge_attr(csv_file='ea8.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
-        
-        #goal_edge_index, goal_edge_attr = to_fully_connected(goal_edge_index, goal_edge_attr)
-
-        block_order_num = list(map(int, block_order.split('_')))
-        #print(block_order_num)
-        for i in range(8):
-            state_edge_index= make_data.edge_index(csv_file='ef'+str(i)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
-            state_edge_attr = make_data.edge_attr(csv_file='ea'+str(i)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
+                target_object_index = block_order_num[stack_target_obj[i]-1]
+                target_object_score = np.zeros(x.shape[0], dtype=int)
+                target_object_score[target_object_index] = 1
+                target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
             
-            goal_edge_index= make_data.edge_index(csv_file='ef'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
-            goal_edge_attr = make_data.edge_attr(csv_file='ea'+str(i+1)+'.csv', root_dir=os.path.join('edge_data', block_order, 'edge_features'))
-            
-            key_node = key_node_list(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
-
-            #state_edge_index, state_edge_attr = to_fully_connected(state_edge_index, state_edge_attr)
-            #goal_edge_index, goal_edge_attr = to_fully_connected(goal_edge_index, goal_edge_attr) 
-
-            cat_edge_index, cat_edge_attr = concat_state_n_goal(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
-
-            cat_edge_index, cat_edge_attr = subgraph(subset=key_node, edge_index=cat_edge_index, edge_attr=cat_edge_attr)
-            #print(cat_edge_index)
-            #print(cat_edge_attr)
-            #input()
-
-            action_code = torch.Tensor(action_encoder[action_sequence[i]])
-
-            target_object_index = block_order_num[target_object_sequence[i]-1]
-            target_object_score = np.zeros(x.shape[0], dtype=int)
-            target_object_score[target_object_index] = 1
-            target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
-
-            #write data to dictionary
-            graph_dict_data = {'input':{'state':{},
-                                        'goal':{},
-                                        'key':{}
-                                        },
-                            'target':{'action':[],
-                                        'object':[]
-                                        },
-                            'info':{'order':str(),
-                                    'step':int()
-                                    }
+                graph_dict_data = {'input':{},
+                                'target':{'action':[],
+                                            'object':[]
+                                            },
+                                'info':{'order':str(),
+                                        'step':int()
                                         }
+                                            }
+                
+                graph_dict_data['input']['x'] = x
+                graph_dict_data['input']['edge_index'] = state_edge_index
+                graph_dict_data['input']['edge_attr'] = cat_edge_attr
+
+                graph_dict_data['target']['action'] = action_code
+                graph_dict_data['target']['object'] = target_object_score
+
+                graph_dict_data['info']['order'] = order
+                graph_dict_data['info']['step'] = i
+
+                stacking5_graph.append(graph_dict_data)
+        return stacking5_graph
+
+
+
+    def collect_mixing5(self):
+        mixing5_graph = []
+        mix_5 = ReadDataset(task='mixing_5')
+
+        x = mix_5.node_feature()
+        mix_action = ['pick','place','pick','place','pick','place','pick','place','pick','place','pour']
+        mix_target_obj = [5, 6, 4, 6, 3, 6, 2, 6, 1, 6, 7]
+
+        block_order_list = os.path.join(mix_5.search_path, 'edge_features')
+        for order in os.listdir(block_order_list):
+            if not(self.goal_next):
+                goal_edge_index, goal_edge_attr = mix_5.edge_features(order=order, i=8)
+
+            block_order_num = list(map(int, order.split('_')))
+            block_order_num.extend([6, 7])
+
+            for i in range(11):
+                state_edge_index, state_edge_attr = mix_5.edge_features(order=order, i=i)
+
+                if self.goal_next:
+                    goal_edge_index, goal_edge_attr = mix_5.edge_features(order=order, i=i+1)
+
+                cat_edge_attr = torch.cat((state_edge_attr, goal_edge_attr), dim=1)
+                
+                action_code = torch.Tensor(self.action_encoder[mix_action[i]])
+ 
+                target_object_index = block_order_num[mix_target_obj[i]-1]
+                target_object_score = np.zeros(x.shape[0], dtype=int)
+                target_object_score[target_object_index] = 1
+                target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
             
-            graph_dict_data['input']['state']['x'] = x
-            graph_dict_data['input']['state']['edge_index'] = state_edge_index
-            graph_dict_data['input']['state']['edge_attr'] = state_edge_attr
+                graph_dict_data = {'input':{},
+                                'target':{'action':[],
+                                            'object':[]
+                                            },
+                                'info':{'order':str(),
+                                        'step':int()
+                                        }
+                                            }
+                
+                graph_dict_data['input']['x'] = x
+                graph_dict_data['input']['edge_index'] = state_edge_index
+                graph_dict_data['input']['edge_attr'] = cat_edge_attr
 
-            graph_dict_data['input']['goal']['x'] = x
-            graph_dict_data['input']['goal']['edge_index'] = goal_edge_index
-            graph_dict_data['input']['goal']['edge_attr'] = goal_edge_attr
+                graph_dict_data['target']['action'] = action_code
+                graph_dict_data['target']['object'] = target_object_score
 
-            graph_dict_data['input']['key']['edge_index'] = cat_edge_index
-            graph_dict_data['input']['key']['edge_attr'] = cat_edge_attr
-            graph_dict_data['input']['key']['key_node'] = key_node
+                graph_dict_data['info']['order'] = order
+                graph_dict_data['info']['step'] = i
 
-            graph_dict_data['target']['action'] = action_code
-            graph_dict_data['target']['object'] = target_object_score
+                mixing5_graph.append(graph_dict_data)
+        return mixing5_graph
 
-            graph_dict_data['info']['order'] = block_order
-            graph_dict_data['info']['step'] = i
-            #print(graph_dict_data['input']['state']['edge_index'])
-            #print(graph_dict_data['input']['state']['edge_attr'].shape)
-            #input()
+####Test####
+data = CollectGraph()
+collected_graph = data.collect_graph()
+print("num of data:{}".format(len(collected_graph)))
 
-            stacking_dataset.append(graph_dict_data)
+print("#####dataset split#####")
+train, val, test = random_split(collected_graph, [0.8, 0.1, 0.1])
+print("num of train:{}".format(len(train)))
+print("num of val:{}".format(len(val)))
+print("num of test:{}".format(len(test)))
 
-    return stacking_dataset
-
-
-stacking_dataset = stacking_5_dataset()
-print("the num of data:", len(stacking_dataset))#120X8=960
-
-for g in stacking_dataset:
-    #print(g)
-    print("#############Checking#############")
-
-    print("Stacking Order: ", g['info']['order'])
-    print("Step in order: ", g['info']['step'])
-    print("\nCurrent State:")
-    print("\tedge_index:\n",g['input']['state']['edge_index'].numpy())
-    print("\tedge_attr:\n",g['input']['state']['edge_attr'].numpy())
-    input()
-
-#print(stacking_dataset[0])
-#print(stacking_dataset[8]['input']['state']['edge_index'])
-#print(stacking_dataset[8]['input']['goal']['edge_index'])
-#print(stacking_dataset[8]['info'])\
-#save each graph in json file
 '''
-for i, g in enumerate(stacking_dataset):
-    file_path = "./stacking_dataset_nopos_nofc/stacking_"+str(i)
+print("#####dataset saved#####")
+for i, g in enumerate(train):
+    file_path = "./datasets/collected/train/graph_"+str(i)
     with open(file_path, "wb") as outfile:
         pickle.dump(g, outfile)
-'''
 
 
-'''
-with open("./stacking_dataset/stacking_"+str(10), "rb") as file:
-    load_data = pickle.load(file)
-    print(load_data)
+for i, g in enumerate(val):
+    file_path = "./datasets/collected/val/graph_"+str(i)
+    with open(file_path, "wb") as outfile:
+        pickle.dump(g, outfile)
+
+
+for i, g in enumerate(test):
+    file_path = "./datasets/collected/test/graph_"+str(i)
+    with open(file_path, "wb") as outfile:
+        pickle.dump(g, outfile)
+
 '''
