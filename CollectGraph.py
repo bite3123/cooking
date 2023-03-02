@@ -206,6 +206,18 @@ data = CollectGraph()
 collected_graph = data.collect_graph()
 print("num of data:{}".format(len(collected_graph)))
 
+action_dist = [0, 0, 0]
+for data in collected_graph:
+    sample = data['target']['action'].tolist()
+    if sample == [1, 0, 0]:
+        action_dist[0] += 1
+    elif sample == [0, 1, 0]:
+        action_dist[1] += 1
+    else :
+        action_dist[2] += 1
+print(action_dist)
+
+
 print("#####dataset split#####")
 train, val, test = random_split(collected_graph, [0.8, 0.1, 0.1])
 print("num of train:{}".format(len(train)))

@@ -11,12 +11,13 @@ import pickle
 from ActionModel import ActionModel
 import os
 
-def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, data_dir):
-    model = ActionModel(hidden_dim, num_action, node_feature_size, edge_feature_size)
+def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir):
+    model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
 
     model.to(device)
 
-    model_path = os.path.join(os.getcwd(), 'result', data_dir + '_' + str(batch_size) + '_' + str(lr))
+    model_name = [data_dir, hidden_dim, num_epoch, batch_size, lr]
+    model_path = os.path.join(os.getcwd(), "result", "_".join(list(map(str, model_name))))
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 
@@ -26,7 +27,9 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
-    loss_ce = nn.CrossEntropyLoss().to(device)
+
+    action_weights = torch.tensor([1080/(1080+1080+120),1080/(1080+1080+120),120/(1080+1080+120)])
+    loss_ce = nn.CrossEntropyLoss(weight=action_weights).to(device)
     #loss_bce = nn.BCEWithLogitsLoss().to(device)
 
     for param in model.parameters():
@@ -41,7 +44,7 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
                         "val":[]}}
 
     #train
-    for epoch in range(100):
+    for epoch in range(num_epoch):
         print("#############################")
         print("epoch number {}".format(epoch+1))
         model.train()
@@ -53,14 +56,14 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
 
         for i, data in enumerate(train_loader):
             input, target = data
-            
+
             pred_action_prob= model(input)
 
             target_action_prob, target_node_scores = target['action'], target['object']
             target_action_prob.to(device)
             target_node_scores.to(device)
 
-            act_label = torch.argmax(target_action_prob, dim=1)
+            act_label = torch.argmax(target_action_prob, dim=1).to(device)
 
             L_action = loss_ce(pred_action_prob,act_label)
             
@@ -79,15 +82,19 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
 
         val_num_correct = 0
         val_num_total = 0
-        model.eval()
 
+        model.eval()
+        
         for i, data in enumerate(val_loader):
             val_input, val_target= data
-
+            
             val_pred_action_prob = model(val_input)
             val_target_action_prob, val_target_node_scores = val_target['action'], val_target['object']
+            
+            val_target_action_prob.to(device)
+            val_target_node_scores.to(device)
 
-            val_act_label = torch.argmax(val_target_action_prob, dim=1)
+            val_act_label = torch.argmax(val_target_action_prob, dim=1).to(device)
             val_L_action = loss_ce(val_pred_action_prob, val_act_label)
                     
             val_running_loss += val_L_action.item()
@@ -96,8 +103,8 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
             val_num_correct += torch.sum(torch.argmax(val_pred_action_prob, dim=-1)==val_act_label)
             val_num_total += val_act_label.size(dim=0)
 
-        acc = num_correct/num_total
-        val_acc = val_num_correct/val_num_total
+        acc = num_correct.item()/num_total
+        val_acc = val_num_correct.item()/val_num_total
         print("Acc\ttrain:{:01.4f}\tval:{:01.4f}".format(acc, val_acc))
         print("Loss\ttrain:{:01.4f}\tval:{:01.4f}".format(last_loss, val_avg_loss))
 

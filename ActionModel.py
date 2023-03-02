@@ -1,32 +1,14 @@
 from torch_geometric.nn import MessagePassing
 from torch_geometric.nn import GCNConv, GATConv, GINEConv
-from torch_geometric.loader import DataLoader
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from torch.utils.data import  random_split
-import torch.optim as optim
-from StackingDataset import StackingDataset
-import pickle
-
-# Basically the same as the baseline except we pass edge features 
-
-#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = "cpu"
-
-
-#### Action input embedding
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
 #### ActionModel
 
 class ActionModel(nn.Module):
-    def __init__(self, hidden_dim, num_action, node_feature_size, edge_feature_size):
+    def __init__(self, device, hidden_dim, num_action, node_feature_size, edge_feature_size):
         super(ActionModel, self).__init__()
+        self.device = device
         self.hidden_dim = hidden_dim
         self.num_action = num_action
         self.node_feature_size = node_feature_size
@@ -68,9 +50,9 @@ class ActionModel(nn.Module):
         edge_index = input_data['edge_index']
         edge_attr = input_data['edge_attr']
 
-        x.to(device)
-        edge_index.to(device)
-        edge_attr.to(device)
+        x.to(self.device)
+        edge_index.to(self.device)
+        edge_attr.to(self.device)
 
         for conv in self.convs[:-1]:
             x = conv(x, edge_index, edge_attr=edge_attr) # adding edge features here!
@@ -81,7 +63,7 @@ class ActionModel(nn.Module):
         batch_list = []
         for i in range(input_data['batch'][-1]+1):
             batch_list.append(x[(input_data['batch']==i).nonzero(as_tuple=False).reshape(-1),:])
-        x = torch.stack(batch_list)
+        x = torch.stack(batch_list).to(self.device)
 
         action_input_emb = x.mean(axis=1)
         #softmax = nn.Softmax(dim=1).to(device)
