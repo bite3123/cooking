@@ -88,6 +88,7 @@ def inference_act_only(device, hidden_dim, num_action, node_feature_size, edge_f
         print("#########################################")
         print()
         #print("test data {}".format(num_total))
+        print("pred_action_prob:", pred_action_prob)
         print("pred_action_score:", F.softmax(pred_action_prob, dim=-1))
         print("target_action_prob:\n",target_action_prob)
         #print("target_node_scores:\n", target_node_scores)

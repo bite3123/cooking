@@ -8,9 +8,9 @@ node_feature_size = 6 #노드 feature 크기
 edge_feature_size = 26 # 
 
 hidden_dim = 128
-num_epoch = 1000
-batch_size = 32
-lr = 1e-06
+num_epoch = 3
+batch_size = 16
+lr = 1e-04
 data_dir = "stack_mix_fc"
 show_result = True
 infer_num = None
@@ -19,4 +19,6 @@ check_each = False
 
 #train_act_only(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir)
 
-inference_act_only(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir, show_result, infer_num, check_each)
+#inference_act_only(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir, show_result, infer_num, check_each)
+
+train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir)

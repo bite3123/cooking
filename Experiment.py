@@ -11,11 +11,11 @@ show_result = False
 infer_num = None
 check_each = False
 
-num_epoch = 1000
+num_epoch = 3* 0
 hidden_dim_list = [128]
-batch_size_list = [16, 32]
+batch_size_list = [32]
 #lr_list = [1e-06, 5e-06, 1e-05, 5e-05]
-lr_list = [1e-06]
+lr_list = [1e-03]
 
 for h in hidden_dim_list:
     for l in lr_list:
