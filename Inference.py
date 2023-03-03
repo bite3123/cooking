@@ -17,9 +17,9 @@ def inference_act_only(device, hidden_dim, num_action, node_feature_size, edge_f
     model_path = os.path.join(os.getcwd(), "result", "_".join(list(map(str, model_param))))
 
     if infer_num is not None:
-        model_name = 'GP_model_{}.pth'.format(infer_num)
+        model_name = 'GP_model_{}.pt'.format(infer_num)
     else:
-        model_name = 'GP_model_best.pth'
+        model_name = 'GP_model_best.pt'
 
 
     with open(os.path.join(model_path, "loss_data"), "rb") as file:
@@ -86,6 +86,7 @@ def inference_act_only(device, hidden_dim, num_action, node_feature_size, edge_f
 
 
         print("#########################################")
+        print()
         #print("test data {}".format(num_total))
         print("pred_action_score:", F.softmax(pred_action_prob, dim=-1))
         print("target_action_prob:\n",target_action_prob)
@@ -124,6 +125,3 @@ def inference_act_only(device, hidden_dim, num_action, node_feature_size, edge_f
         print("------------------------")
         print("Test Result: {}/{} corrected".format(sum(num_acc), sum(num_total)))
         print("Test Acc: {:01.4f}".format(sum(num_acc)/sum(num_total)))
-
-
-

@@ -3,15 +3,16 @@ from Inference import *
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-hidden_dim = 128
 num_action = 3 # [pick, place, pour]
 node_feature_size = 6 #노드 feature 크기
 edge_feature_size = 26 # 
+
+hidden_dim = 128
+num_epoch = 1000
 batch_size = 32
 lr = 1e-06
-num_epoch = 200
-data_dir = "collected"
-show_result = False
+data_dir = "stack_mix_fc"
+show_result = True
 infer_num = None
 check_each = False
 

@@ -6,14 +6,14 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 num_action = 3 # [pick, place, pour]
 node_feature_size = 6 #노드 feature 크기
 edge_feature_size = 26 # 
-num_epoch = 200
-data_dir = "collected"
+data_dir = "stack_mix_fc"
 show_result = False
 infer_num = None
 check_each = False
 
+num_epoch = 1000
 hidden_dim_list = [128]
-batch_size_list = [2, 4, 8, 16, 32, 64, 128]
+batch_size_list = [16, 32]
 #lr_list = [1e-06, 5e-06, 1e-05, 5e-05]
 lr_list = [1e-06]
 

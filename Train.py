@@ -27,8 +27,9 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
-
-    action_weights = torch.tensor([1080/(1080+1080+120),1080/(1080+1080+120),120/(1080+1080+120)])
+    action_dist = [1200, 1200, 120]
+    action_weights = torch.tensor([action_dist[0]/sum(action_dist),action_dist[1]/sum(action_dist),action_dist[2]/sum(action_dist)])
+    print(action_weights)
     loss_ce = nn.CrossEntropyLoss(weight=action_weights).to(device)
     #loss_bce = nn.BCEWithLogitsLoss().to(device)
 
@@ -84,24 +85,24 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
         val_num_total = 0
 
         model.eval()
-        
-        for i, data in enumerate(val_loader):
-            val_input, val_target= data
-            
-            val_pred_action_prob = model(val_input)
-            val_target_action_prob, val_target_node_scores = val_target['action'], val_target['object']
-            
-            val_target_action_prob.to(device)
-            val_target_node_scores.to(device)
+        with torch.no_grad():
+            for i, data in enumerate(val_loader):
+                val_input, val_target= data
+                
+                val_pred_action_prob = model(val_input)
+                val_target_action_prob, val_target_node_scores = val_target['action'], val_target['object']
+                
+                val_target_action_prob.to(device)
+                val_target_node_scores.to(device)
 
-            val_act_label = torch.argmax(val_target_action_prob, dim=1).to(device)
-            val_L_action = loss_ce(val_pred_action_prob, val_act_label)
-                    
-            val_running_loss += val_L_action.item()
-            val_avg_loss = val_running_loss / (i+1)
+                val_act_label = torch.argmax(val_target_action_prob, dim=1).to(device)
+                val_L_action = loss_ce(val_pred_action_prob, val_act_label)
+                        
+                val_running_loss += val_L_action.item()
+                val_avg_loss = val_running_loss / (i+1)
 
-            val_num_correct += torch.sum(torch.argmax(val_pred_action_prob, dim=-1)==val_act_label)
-            val_num_total += val_act_label.size(dim=0)
+                val_num_correct += torch.sum(torch.argmax(val_pred_action_prob, dim=-1)==val_act_label)
+                val_num_total += val_act_label.size(dim=0)
 
         acc = num_correct.item()/num_total
         val_acc = val_num_correct.item()/val_num_total
@@ -116,9 +117,9 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
 
         if val_avg_loss < best_loss:
             best_loss = val_avg_loss
-            torch.save(model.state_dict(), model_path + '/GP_model_{}.pth'.format(epoch))
-            torch.save(model.state_dict(), model_path + '/GP_model_best.pth')
-        
+            torch.save(model.state_dict(), model_path + '/GP_model_{}.pt'.format(epoch))
+            torch.save(model.state_dict(), model_path + '/GP_model_best.pt')
+
 
     #save loss record
     file_path = os.path.join(model_path, 'loss_data')

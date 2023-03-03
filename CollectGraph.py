@@ -73,11 +73,10 @@ class ReadDataset():
 
 
 class CollectGraph():
-    def __init__(self, goal_next=False, key_node=False, concat_goal=True, fc_graph=True):
+    def __init__(self, goal_next=False, key_node=False, fc_graph=True):
         self.goal_next = goal_next
         self.action_encoder = {'pick':[1, 0, 0], 'place':[0, 1, 0], 'pour':[0, 0, 1]}
         self.key_node = key_node
-        self.concat_goal = concat_goal
         self.fc_graph = fc_graph
         #key_node check
         #concat check
@@ -153,18 +152,18 @@ class CollectGraph():
         mix_5 = ReadDataset(task='mixing_5')
 
         x = mix_5.node_feature()
-        mix_action = ['pick','place','pick','place','pick','place','pick','place','pick','place','pour']
-        mix_target_obj = [5, 6, 4, 6, 3, 6, 2, 6, 1, 6, 7]
+        mix_action = ['pick','place','pick','place','pick','place','pick','place','pick','place','pick','pour','place']
+        mix_target_obj = [5, 6, 4, 6, 3, 6, 2, 6, 1, 6, 6, 7, 8]
 
         block_order_list = os.path.join(mix_5.search_path, 'edge_features')
         for order in os.listdir(block_order_list):
             if not(self.goal_next):
-                goal_edge_index, goal_edge_attr = mix_5.edge_features(order=order, i=8)
+                goal_edge_index, goal_edge_attr = mix_5.edge_features(order=order, i=13)
 
             block_order_num = list(map(int, order.split('_')))
-            block_order_num.extend([6, 7])
+            block_order_num.extend([6, 7, 8])
 
-            for i in range(11):
+            for i in range(13):
                 state_edge_index, state_edge_attr = mix_5.edge_features(order=order, i=i)
 
                 if self.goal_next:
@@ -225,21 +224,47 @@ print("num of val:{}".format(len(val)))
 print("num of test:{}".format(len(test)))
 
 '''
+for g in collected_graph:
+    #print(g)
+    print("#############Checking#############")
+
+    print("Stacking Order: ", g['info']['order'])
+    print("Step in order: ", g['info']['step'])
+    print("\nCurrent State:")
+    print("\tedge_index:\n",g['input']['edge_index'].numpy())
+    print("\tedge_attr:\n",g['input']['edge_attr'].numpy())
+
+    print("target action:\n",g['target']['action'])
+    print("target object:\n", g['target']['object'])
+    input()
+'''
+
+'''
+dataset_path = "./datasets/stack_mix_fc"
+if not os.path.exists(dataset_path):
+    os.makedirs(dataset_path)
+if not os.path.exists(dataset_path+"/train"):
+    os.makedirs(dataset_path+"/train")
+if not os.path.exists(dataset_path+"/val"):
+    os.makedirs(dataset_path+"/val")
+if not os.path.exists(dataset_path+"/test"):
+    os.makedirs(dataset_path+"/test")
+
 print("#####dataset saved#####")
 for i, g in enumerate(train):
-    file_path = "./datasets/collected/train/graph_"+str(i)
+    file_path = os.path.join(dataset_path,"train","graph_"+str(i))
     with open(file_path, "wb") as outfile:
         pickle.dump(g, outfile)
 
 
 for i, g in enumerate(val):
-    file_path = "./datasets/collected/val/graph_"+str(i)
+    file_path = os.path.join(dataset_path,"val","graph_"+str(i))
     with open(file_path, "wb") as outfile:
         pickle.dump(g, outfile)
 
 
 for i, g in enumerate(test):
-    file_path = "./datasets/collected/test/graph_"+str(i)
+    file_path = os.path.join(dataset_path,"test","graph_"+str(i))
     with open(file_path, "wb") as outfile:
         pickle.dump(g, outfile)
 
