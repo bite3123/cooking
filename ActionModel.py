@@ -3,11 +3,11 @@ from torch_geometric.nn import GCNConv, GATConv, GINEConv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-#### ActionModel
+#### ActionModel_act_only
 
-class ActionModel(nn.Module):
+class ActionModel_act_only(nn.Module):
     def __init__(self, device, hidden_dim, num_action, node_feature_size, edge_feature_size):
-        super(ActionModel, self).__init__()
+        super(ActionModel_act_only, self).__init__()
         self.device = device
         self.hidden_dim = hidden_dim
         self.num_action = num_action
@@ -67,11 +67,11 @@ class ActionModel(nn.Module):
         return action_prob
     
 
-#### ActionModel2
+#### ActionModel
 
-class ActionModel2(nn.Module):
+class ActionModel(nn.Module):
     def __init__(self, device, hidden_dim, num_action, node_feature_size, edge_feature_size):
-        super(ActionModel2, self).__init__()
+        super(ActionModel, self).__init__()
         self.device = device
         self.hidden_dim = hidden_dim
         self.num_action = num_action

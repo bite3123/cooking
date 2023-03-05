@@ -12,7 +12,7 @@ from ActionModel import *
 import os
 
 def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir):
-    model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
+    model = ActionModel_act_only(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
 
     model.to(device)
 
@@ -126,8 +126,8 @@ def train_act_only(device, hidden_dim, num_action, node_feature_size, edge_featu
     with open(file_path, "wb") as outfile:
         pickle.dump(loss_data, outfile)
 
-def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir):
-    model = ActionModel2(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
+def train(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir):
+    model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
 
     model.to(device)
 
@@ -184,7 +184,7 @@ def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_
         num_obj_total = 0
 
         for i, data in enumerate(train_loader):
-            input, target = data['input'], data['target']
+            input, target, info = data
 
             pred_action_prob, pred_object_prob = model(input)
 
@@ -230,7 +230,7 @@ def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_
         model.eval()
         with torch.no_grad():
             for i, data in enumerate(val_loader):
-                val_input, val_target= data['input'], data['target']
+                val_input, val_target, _ = data
                 
                 val_pred_action_prob, val_pred_object_prob = model(val_input)
                 val_target_action_prob, val_target_node_scores = val_target['action'], val_target['object']

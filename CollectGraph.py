@@ -222,7 +222,10 @@ print(action_dist)
 
 
 print("#####dataset split#####")
-train, val, test = random_split(collected_graph, [0.8, 0.1, 0.1])
+proportions = [0.8, 0.1, 0.1]
+lengths = [int(p*len(collected_graph)) for p in proportions]
+lengths[-1] = len(collected_graph) - sum(lengths[:-1])   
+train, val, test = random_split(collected_graph, lengths)
 print("num of train:{}".format(len(train)))
 print("num of val:{}".format(len(val)))
 print("num of test:{}".format(len(test)))
@@ -243,8 +246,7 @@ for g in collected_graph:
     input()
 '''
 
-'''
-dataset_path = "./datasets/stack_mix_fc"
+dataset_path = "./datasets/stack_mix_fc_test"
 if not os.path.exists(dataset_path):
     os.makedirs(dataset_path)
 if not os.path.exists(dataset_path+"/train"):
@@ -271,5 +273,3 @@ for i, g in enumerate(test):
     file_path = os.path.join(dataset_path,"test","graph_"+str(i))
     with open(file_path, "wb") as outfile:
         pickle.dump(g, outfile)
-
-'''

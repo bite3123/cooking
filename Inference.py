@@ -62,7 +62,7 @@ def inference_act_only(device, hidden_dim, num_action, node_feature_size, edge_f
 
     saved_path = os.path.join(model_path, model_name)
 
-    saved_model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
+    saved_model = ActionModel_act_only(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
     saved_model.load_state_dict(torch.load(saved_path))
     saved_model.to(device)
 
@@ -128,7 +128,7 @@ def inference_act_only(device, hidden_dim, num_action, node_feature_size, edge_f
         print("Test Acc: {:01.4f}".format(sum(num_acc)/sum(num_total)))
 
 
-def inference_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir, show_result, infer_num=None, check_each = False):
+def inference(device, hidden_dim, num_action, node_feature_size, edge_feature_size, batch_size, lr, num_epoch, data_dir, show_result, infer_num=None, check_each = False):
     
     model_param = [data_dir, hidden_dim, num_epoch, batch_size, lr]
     model_path = os.path.join(os.getcwd(), "result", "_".join(list(map(str, model_param))))
@@ -229,7 +229,7 @@ def inference_act_only_test(device, hidden_dim, num_action, node_feature_size, e
 
     saved_path = os.path.join(model_path, model_name)
 
-    saved_model = ActionModel2(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
+    saved_model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size)
     saved_model.load_state_dict(torch.load(saved_path))
     saved_model.to(device)
 
@@ -249,7 +249,7 @@ def inference_act_only_test(device, hidden_dim, num_action, node_feature_size, e
 
     saved_model.eval()
     for test_data in data_test_loader:
-        test_input, test_target = test_data['input'], test_data['target']
+        test_input, test_target, test_info = test_data
         pred_action_prob, pred_object_prob = saved_model(test_input)
 
         target_action_prob, target_node_scores = test_target['action'].to(device), test_target['object'].to(device)
@@ -264,13 +264,16 @@ def inference_act_only_test(device, hidden_dim, num_action, node_feature_size, e
 
         print("#########################################")
         print("data info:")
-        print("demo type:", test_data['info']['demo'])
-        print("order:", test_data['info']['order'])
-        print("step:", test_data['info']['step'])
-        print("L_total:", L_total.item())
+        print("demo type:", test_info['demo'])
+        print("order:", test_info['order'])
+        print("step:", test_info['step'].item())
         print("--------------------------------")
+        print("Loss:")
+        print("--------------------------------")
+        print("L_total:", L_total.item())
+        print("\n")
         print("pred_action_score:", F.softmax(pred_action_prob, dim=-1))
-        print("target_action_prob:\n",target_action_prob)
+        print("target_action_prob:",target_action_prob)
         print("L_action:", L_action.item())
 
         act_num_total[test_act_label.item()] += 1
@@ -281,9 +284,9 @@ def inference_act_only_test(device, hidden_dim, num_action, node_feature_size, e
         else:
             print("Failed TT")
 
-        print("--------------------------------")
+        print("\n")
         print("pred_object_score:", F.softmax(pred_object_prob, dim=-1))
-        print("target_object_prob:\n",target_node_scores)
+        print("target_object_prob:",target_node_scores)
         print("L_object:", L_object.item())
         
         print("Object Prediction Result:")
@@ -297,6 +300,7 @@ def inference_act_only_test(device, hidden_dim, num_action, node_feature_size, e
             input()
         
     print("------------------------")
+    print("Accuracy:")
     print("------------------------")
     print("Pick Result: {}/{} corrected".format(act_num_acc[0], act_num_total[0]))
     print("Pick Acc: {:01.4f}".format(act_num_acc[0]/ act_num_total[0]))
