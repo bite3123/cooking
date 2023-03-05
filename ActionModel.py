@@ -67,7 +67,7 @@ class ActionModel(nn.Module):
         return action_prob
     
 
-#### ActionModel
+#### ActionModel2
 
 class ActionModel2(nn.Module):
     def __init__(self, device, hidden_dim, num_action, node_feature_size, edge_feature_size):

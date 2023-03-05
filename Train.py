@@ -152,12 +152,18 @@ def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_
         param.requires_grad = True
 
     best_loss = 10000
-
+    
     loss_data = {"epoch":[],
-                "loss":{"train":[],
-                        "val":[]},
-                "acc":{"train":[],
-                        "val":[]}}
+                 "loss":{"total":{"train":[],
+                                  "val":[]},
+                         "action":{"train":[],
+                                   "val":[]},
+                         "object":{"train":[],
+                                   "val":[]}},
+                 "acc":{"action":{"train":[],
+                                   "val":[]},
+                         "object":{"train":[],
+                                   "val":[]}}}
 
     #train
     for epoch in range(num_epoch):
@@ -178,7 +184,7 @@ def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_
         num_obj_total = 0
 
         for i, data in enumerate(train_loader):
-            input, target = data
+            input, target = data['input'], data['target']
 
             pred_action_prob, pred_object_prob = model(input)
 
@@ -199,21 +205,18 @@ def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_
 
             running_loss += L_total.item()
             last_loss = running_loss/(i+1)
-
             act_running_loss += L_action.item()
             act_last_loss = act_running_loss/(i+1)
-
             obj_running_loss += L_object.item()
             obj_last_loss = obj_running_loss/(i+1)
 
             num_act_correct += torch.sum(torch.argmax(pred_action_prob, dim=-1)==act_label)
             num_act_total += act_label.size(dim=0)
-
             num_obj_correct += torch.sum(torch.argmax(pred_object_prob, dim=-1)==obj_label)
             num_obj_total += obj_label.size(dim=0)
 
         val_running_loss = 0.0
-        val_avg_loss = 0.0
+        val_last_loss = 0.0
         val_act_running_loss = 0.0
         val_act_last_loss = 0.0
         val_obj_running_loss = 0.0
@@ -227,7 +230,7 @@ def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_
         model.eval()
         with torch.no_grad():
             for i, data in enumerate(val_loader):
-                val_input, val_target= data
+                val_input, val_target= data['input'], data['target']
                 
                 val_pred_action_prob, val_pred_object_prob = model(val_input)
                 val_target_action_prob, val_target_node_scores = val_target['action'], val_target['object']
@@ -244,7 +247,7 @@ def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_
                 val_L_total = val_L_action + val_L_object
                         
                 val_running_loss += val_L_total.item()
-                val_avg_loss = val_running_loss / (i+1)
+                val_last_loss = val_running_loss / (i+1)
 
 
                 val_act_running_loss += val_L_action.item()
@@ -268,23 +271,31 @@ def train_act_only_test(device, hidden_dim, num_action, node_feature_size, edge_
         print("Action Acc\ttrain:{:01.4f}\tval:{:01.4f}".format(act_acc, val_act_acc))
         print("Object Acc\ttrain:{:01.4f}\tval:{:01.4f}".format(obj_acc, val_obj_acc))  
 
-        print("Total Loss\ttrain:{:01.4f}\tval:{:01.4f}".format(last_loss, val_avg_loss))
+        print("\nTotal Loss\ttrain:{:01.4f}\tval:{:01.4f}".format(last_loss, val_last_loss))
         print("Action Loss\ttrain:{:01.4f}\tval:{:01.4f}".format(act_last_loss, val_act_last_loss))
         print("Object Loss\ttrain:{:01.4f}\tval:{:01.4f}".format(obj_last_loss, val_obj_last_loss))
 
-        #loss_data['epoch'].append(epoch)
-        #loss_data['loss']['train'].append(last_loss)
-        #loss_data['loss']['val'].append(val_avg_loss)
-        #loss_data['acc']['train'].append(acc)
-        #loss_data['acc']['val'].append(val_acc)
+        loss_data['epoch'].append(epoch)
+        
+        loss_data['acc']['action']['train'].append(act_acc)
+        loss_data['acc']['action']['val'].append(val_act_acc)
+        loss_data['acc']['object']['train'].append(obj_acc)
+        loss_data['acc']['object']['val'].append(val_obj_acc)
 
-        if val_avg_loss < best_loss:
-            best_loss = val_avg_loss
+        loss_data['loss']['total']['train'].append(last_loss)
+        loss_data['loss']['total']['val'].append(val_last_loss)
+        loss_data['loss']['action']['train'].append(act_last_loss)
+        loss_data['loss']['action']['val'].append(val_act_last_loss)
+        loss_data['loss']['object']['train'].append(obj_last_loss)
+        loss_data['loss']['object']['val'].append(val_obj_last_loss)
+
+        if val_last_loss < best_loss:
+            best_loss = val_last_loss
             torch.save(model.state_dict(), model_path + '/GP_model_{}.pt'.format(epoch))
             torch.save(model.state_dict(), model_path + '/GP_model_best.pt')
 
 
-    ##save loss record
-    #file_path = os.path.join(model_path, 'loss_data')
-    #with open(file_path, "wb") as outfile:
-        #pickle.dump(loss_data, outfile)
+        #save loss record
+        file_path = os.path.join(model_path, 'loss_data')
+        with open(file_path, "wb") as outfile:
+            pickle.dump(loss_data, outfile)

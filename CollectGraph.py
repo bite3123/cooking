@@ -128,7 +128,8 @@ class CollectGraph():
                                             'object':[]
                                             },
                                 'info':{'order':str(),
-                                        'step':int()
+                                        'step':int(),
+                                        'demo':str()
                                         }
                                             }
                 
@@ -141,6 +142,7 @@ class CollectGraph():
 
                 graph_dict_data['info']['order'] = order
                 graph_dict_data['info']['step'] = i
+                graph_dict_data['info']['demo'] = "stacking_5"
 
                 stacking5_graph.append(graph_dict_data)
         return stacking5_graph
@@ -183,7 +185,8 @@ class CollectGraph():
                                             'object':[]
                                             },
                                 'info':{'order':str(),
-                                        'step':int()
+                                        'step':int(),
+                                        'demo':str()
                                         }
                                             }
                 
@@ -196,6 +199,7 @@ class CollectGraph():
 
                 graph_dict_data['info']['order'] = order
                 graph_dict_data['info']['step'] = i
+                graph_dict_data['info']['demo'] = "mixing_5"
 
                 mixing5_graph.append(graph_dict_data)
         return mixing5_graph

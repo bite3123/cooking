@@ -22,12 +22,5 @@ class GraphPlanningDataset(Dataset):
         loaded_data = {}
         with open(os.path.join(self.search_path, self.data_list[index]), "rb") as file:
             loaded_data = pickle.load(file)
-        
-        x = loaded_data['input']['x']
-        edge_index = loaded_data['input']['edge_index']
-        edge_attr = loaded_data['input']['edge_attr']
 
-        input_data = Data(x, edge_index, edge_attr)   
-        target_data = loaded_data['target']
-
-        return input_data, target_data
+        return loaded_data
