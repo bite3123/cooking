@@ -110,13 +110,12 @@ class ActionModel(nn.Module):
 
         self.node_layers = nn.Sequential(
             nn.Linear(self.hidden_dim, self.hidden_dim),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(self.hidden_dim, self.hidden_dim),
-            nn.LeakyReLU(),
-            nn.Linear(self.hidden_dim, 1)
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, 1),
+            nn.Sigmoid()
         )
-
-        self.sig = nn.Sigmoid()
 
     def forward(self, input_data):
         x = input_data['x'].to(self.device)
@@ -135,7 +134,7 @@ class ActionModel(nn.Module):
             node_score_per_batch = []
             
             for node_emb in x_per_batch:
-                node_score_per_batch.append(self.sig(self.node_layers(node_emb)))
+                node_score_per_batch.append(self.node_layers(node_emb))
             node_score_per_batch = torch.cat(node_score_per_batch)
 
             action_input_emb_per_batch = x_per_batch.mean(axis=0)
