@@ -11,13 +11,15 @@ import pickle
 
 ## Dataset
 class ReadDataset():
-    def __init__(self, task, sort_edge=True):
+    def __init__(self, task, sort_edge=True, without_pos=False, fully_connected=True):
         # Search path
         # task: stacking / mixing / ...
         self.search_path = os.path.join(os.getcwd(), 'seq_dataset',task)
         print("search_path:",self.search_path)
         
         self.sort_edge = sort_edge
+        self.without_pos = without_pos
+        self.fully_connected = fully_connected
 
     # Getting node features
     def node_feature(self, csv_file='nf0.csv'):
@@ -43,8 +45,16 @@ class ReadDataset():
         
         # Read csv file to tensor
         ea_csv = pd.read_csv(edge_attr_path, index_col=0)
+        pos = ea_csv.iloc[:,7:]
+
+        if self.fully_connected is False:
+            ea_csv = ea_csv.iloc[:14, :] #drop zero-value edges
+            pos = pos.iloc[:14, :]
+        if self.without_pos:
+            ea_csv = ea_csv.iloc[:, :7]
         if self.sort_edge:
             ea_csv = ea_csv.sort_index()
+            pos = pos.sort_index()
 
         ea = torch.Tensor(ea_csv.values) # dataframe to tensor
         edge_attr = ea.to(dtype = torch.float32)
@@ -57,7 +67,7 @@ class ReadDataset():
         
         edge_index = torch.cat(ei_list, dim=1)
 
-        return edge_index, edge_attr
+        return edge_index, edge_attr, pos
     
     def graph_data(self, order, i):
         x = self.node_feature()
@@ -94,14 +104,16 @@ class ReadDataset_VariNodeNum():
         nf_csv = pd.read_csv(node_feature_path, index_col=0)
         node_id = list(map(str,nf_csv.index.to_list()))
         node_id_to_idx = {}
+        node_idx_to_id = {}
         for i, n in enumerate(node_id):
             node_id_to_idx[n] = i
+            node_idx_to_id[i] = n
         nf = F.pad(torch.Tensor(nf_csv.values), (0,0,0,self.max_node_num-len(node_id_to_idx)), value=0)
 
         #nf_drop = nf_csv.drop(labels='ID',axis=1) # drop the "ID" column / axis=0 (row), axis=1(column)
         #nf = torch.Tensor(nf_drop.values) # dataframe to tensor
         x = nf.to(dtype=torch.float32)
-        return x, node_id_to_idx
+        return x, node_id_to_idx, node_idx_to_id
 
     def edge_features(self, order, i):
         # Search path
@@ -151,7 +163,6 @@ class CollectGraph_VariNodeNum():
 
         collect_graph.extend(self.collect_stacking5())
         collect_graph.extend(self.collect_mixing5())
-
         return collect_graph
 
     def collect_stacking5(self):
@@ -288,7 +299,7 @@ class CollectGraph():
 
     def collect_stacking5(self):
         stacking5_graph = []
-        stack_5 = ReadDataset(task='stacking_5')
+        stack_5 = ReadDataset(task='stacking_5', sort_edge=False,fully_connected=False)
 
         x = stack_5.node_feature()
 
@@ -298,15 +309,15 @@ class CollectGraph():
         block_order_list = os.path.join(stack_5.search_path, 'edge_features')
         for order in os.listdir(block_order_list):
             if not(self.goal_next):
-                goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=8)
+                goal_edge_index, goal_edge_attr, goal_pos = stack_5.edge_features(order=order, i=8)
 
             block_order_num = list(map(int, order.split('_')))
 
             for i in range(8):
-                state_edge_index, state_edge_attr = stack_5.edge_features(order=order, i=i)
+                state_edge_index, state_edge_attr, state_pos = stack_5.edge_features(order=order, i=i)
 
                 if self.goal_next:
-                    goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i+1)
+                    goal_edge_index, goal_edge_attr, goal_pos = stack_5.edge_features(order=order, i=i+1)
 
                 cat_edge_attr = torch.cat((state_edge_attr, goal_edge_attr), dim=1)
                 
@@ -345,7 +356,7 @@ class CollectGraph():
 
     def collect_mixing5(self):
         mixing5_graph = []
-        mix_5 = ReadDataset(task='mixing_5')
+        mix_5 = ReadDataset(task='mixing_5', fully_connected=False)
 
         x = mix_5.node_feature()
         mix_action = ['pick','place','pick','place','pick','place','pick','place','pick','place','pick','pour','place']
