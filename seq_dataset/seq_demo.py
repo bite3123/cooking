@@ -3,7 +3,7 @@ import torch
 import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset
-from torch_geometric.data import Dataset
+# from torch_geometric.data import Dataset
 import os
 import natsort
 import random
@@ -69,12 +69,12 @@ class MakeDataset(Dataset):
 
 
 
-    def changed_node_feature(self, save_num):
+    def changed_node_feature(self, n):
         node_features_path = os.path.join(self.search_path,'node_features')
         file_list = natsort.natsorted(os.listdir(node_features_path))
-        from_node_path = os.path.join(self.search_path, 'node_features', file_list[save_num-1])
+        from_node_path = os.path.join(self.search_path, 'node_features', file_list[n-1])
         nf0 = pd.read_csv(from_node_path)
-        print(nf0)
+        # print(nf0)
         attach_i = nf0[nf0['Property_V'] == 1]
         attach_index = attach_i.index.to_list() #[int, int]
         attach_id = attach_i["ID"].to_list()
@@ -92,215 +92,26 @@ class MakeDataset(Dataset):
         nf1.loc[attach_boxes, 'Property_V'] = 1
         nf1.loc[attach_boxes, 'Property_G'] = 1
 
-        print(f'\n[{self.example}_nf{save_num}]\n',nf1)
+        print(f'\n[{self.example}_nf{n}]\n',nf1)
         
-        save_csv = os.path.join(node_features_path, f'{self.example}_nf{save_num}.csv')
+        save_csv = os.path.join(node_features_path, f'{self.example}_nf{n}.csv')
         nf1.to_csv(save_csv) 
         
-        print(f'\n----{self.example}_nf{save_num}.csv file is saved----')
+        print(f'\n----{self.example}_nf{n}.csv file is saved----')
 
-    def same_node_features(self, save_num):
+    def same_node_features(self, n):
         node_features_path = os.path.join(self.search_path,'node_features')
         file_list = natsort.natsorted(os.listdir(node_features_path))
-        from_node_path = os.path.join(self.search_path, 'node_features', file_list[save_num-1])
+        from_node_path = os.path.join(self.search_path, 'node_features', file_list[n-1])
         nf = pd.read_csv(from_node_path)
         nf = nf.set_index("ID")
-        save_csv = os.path.join(node_features_path, f'{self.example}_nf{save_num}.csv')
+        save_csv = os.path.join(node_features_path, f'{self.example}_nf{n}.csv')
         nf.to_csv(save_csv) 
-        print(f'\n----{self.example}_nf{save_num}.csv file is saved----')
-
-    def pick_inx(self, save_num, obj1): # obj = ID number
-        # Choose sample
-        sample_inx_path = os.path.join(self.search_path,'edge_index')
-        file_list = natsort.natsorted(os.listdir(sample_inx_path))
-
-        # edge_path = os.path.join(self.search_path, 'test/edge_index',file_list[file_num])
-        edge_path = os.path.join(self.search_path, 'edge_index',file_list[save_num - 1])
-        ef_csv = pd.read_csv(edge_path, index_col=0)
-
-      
-        # Data type) column :'object', index = 'int64'
-        pick_csv = ef_csv
+        print(f'\n----{self.example}_nf{n}.csv file is saved----')
 
 
-        # Preconditions
-        if obj1 != 0 and obj1 != 8: # Not robot-hand and table (The very first:robot-hand, The very last:table)
-            if pick_csv.loc[obj1,'0'] == 0 and pick_csv.loc[0,f'{obj1}'] == 0: # obj1 is has not relationship with robot-hand
+###### Edge index ######
 
-                # Remove 'on' relation (Table) 
-                pick_csv.loc[obj1,'8'] = 0
-                pick_csv.loc[8,f'{obj1}'] = 0
-
-                # Add 'in-grasp' relation (Robot-hand)
-                pick_csv.loc[obj1,'0'] = 1
-                pick_csv.loc[0,f'{obj1}'] = 1
-                print(f'\n[ef_pick{str(obj1)}.csv] \n') 
-
-        
-                file_name = str(self.example)+'_ei'+str(save_num)+'.csv'
-                save_path = os.path.join(self.search_path,'edge_index')
-                createFolder(save_path)
-                pick_csv.to_csv(os.path.join(save_path,file_name))
-                   
-
-                self.pick_csv = pick_csv
-            
-                return pick_csv
-            
-            else:
-                print("\n----Check the '.csv' file again----\nFile lists:", file_list[save_num-1])
-            
-        else:
-            print("\n----Cannot pick this object----\n")
-
-
-        
-    def place_inx(self, save_num, obj1, obj2): 
-        sample_inx_path = os.path.join(self.search_path,'edge_index')
-        file_list = natsort.natsorted(os.listdir(sample_inx_path))
-
-        # edge_path = os.path.join(self.search_path, 'test/edge_index',file_list[file_num])
-        edge_path = os.path.join(self.search_path, 'edge_index',file_list[save_num -1])
-        place_csv = pd.read_csv(edge_path, index_col=0)
-        # place_csv = self.pick_csv
-        
-        # Check obj1 and obj2 range
-        if obj1 != 0 and obj1 != 8 and obj2 != 0:
-            # 'in-grasp' relation (Robot hand O -> X) , object are not equal
-            if place_csv.loc[obj1,'0'] == 1 and place_csv.loc[0,f'{obj1}'] == 1:
-                # Check obj1 and obj2 are equal
-                if obj1 != obj2:
-
-                    # Add 'on' relation with obj1 and obj2
-                    place_csv.loc[obj1,f'{obj2}'] = 1
-                    place_csv.loc[obj2,f'{obj1}'] = 1
-
-                    # Remove 'in-grasp' relation (Robot hand)
-                    place_csv.loc[obj1,'0'] = 0
-                    place_csv.loc[0,f'{obj1}'] = 0
-
-                    
-                    print(f'\n[ef_place_{str(obj1)}_on_{str(obj2)}.csv] \n') 
-
-                    ### Save files
-                    file_name = str(self.example)+'_ei'+str(save_num)+'.csv'
-                    save_path = os.path.join(self.search_path,'edge_index')
-                    createFolder(save_path)
-                    place_csv.to_csv(os.path.join(save_path,file_name))
-
-                    ###
-                    self.place_csv = place_csv
-
-                    return place_csv
-                
-                else:
-                    print("----Object1 and object2 are equal----")
-            else:
-                print("\n----Robot hand does not hold obj1. Please check the '.csv' file again----\nFile lists:", file_list[save_num+1])
-        else:
-            print("----Cannot place this object----")
-
-    def attach_inx(self, save_num, obj1, obj2):
-        attach_csv = self.place_csv
-       
-        #### Simply attach object one by one 
-        sample_node_path = os.path.join(self.search_path, 'node_features')
-        file_list = natsort.natsorted(os.listdir(sample_node_path))
-
-        from_node_path = os.path.join(self.search_path, 'node_features', file_list[save_num])
-        nf = pd.read_csv(from_node_path)
-        # print(nf)
-        attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()[0]
-
-        
-        if obj1 != 0 and obj1 != 8 and obj2 != 0 and obj2 != 8:
-            if self.place_csv.loc[obj1,f'{obj2}'] == 1 and self.place_csv.loc[obj2,f'{obj1}'] == 1:
-                attach_csv = attach_csv.drop(index= obj1)
-                attach_csv = attach_csv.drop(columns= f'{obj1}')
-                attach_csv = attach_csv.drop(index= obj2)
-                attach_csv = attach_csv.drop(columns= f'{obj2}')
-
-                
-                # attach box에 대한 행과 열 추가
-                attach_csv.loc[attached_boxes] = 0
-                attach_csv[f'{attached_boxes}'] = 0
-                
-                # 8번 Table 위에 올려두기
-                attach_csv.loc[attached_boxes, '8'] = 1
-                attach_csv.loc[8, f'{attached_boxes}'] = 1
-
-            ## Save files
-                file_name = f'{self.example}_ei{save_num}.csv'
-                save_path = os.path.join(self.search_path,'edge_index')
-                createFolder(save_path)
-                attach_csv.to_csv(os.path.join(save_path,file_name))
-
-                print(f'\n[ef_attach_{str(obj1)}_and_{str(obj2)}.csv] \n')
-                return attach_csv
-
-            else:
-                print("----Obj1 is not <on> Obj2----")
-        else:
-            print("----Cannot attach those object----")
-        
-
-
-    def pour(self, save_num, obj1, obj2):
-        file = 'ei'+str(save_num-1)+'.csv'
-        edge_path = os.path.join(self.search_path, 'edge_index',file)
-        pour_csv = pd.read_csv(edge_path, index_col=0)
-        print("\n[Original]\n",pour_csv,'\n')
-        
-        # Node feature 따라서 만들고 obj1은 bowl이어야 함
-        if obj1 == 6 or obj1 == 7 :
-            for placed_obj in range(1,7):  # placed_obj 1 ~ 7
-
-                # Relation with obj1 (bowl) must be relative
-                if pour_csv.loc[obj1,f'{placed_obj}'] == 1 and pour_csv.loc[placed_obj,f'{obj1}'] == 1:
-                    # print(placed_obj)
-
-                    # Remove relation with obj1
-                    pour_csv.loc[obj1,f'{placed_obj}'] = 0
-                    pour_csv.loc[placed_obj,f'{obj1}'] = 0
-
-                    # Add relation with obj2
-                    pour_csv.loc[obj2,f'{placed_obj}'] = 1
-                    pour_csv.loc[placed_obj,f'{obj2}'] = 1
-                    
-                    # Repeat all applicable 'placed_obj' while if statement is true
-                    continue
-            print("\n[Change]\n",pour_csv)
-               
-            
-            file_name = str(self.example)+'_ei'+str(save_num)+'.csv'
-            save_path = os.path.join(self.search_path,'edge_index')
-            createFolder(save_path)
-            pour_csv.to_csv(os.path.join(save_path,file_name))
-    
-        else:
-            print("----Object is not a bowl----")
-
-    
-        
-    # def save_file(self, action,i):
-       
-    #     if action == 'pick':
-    #         action_pick = 'ef_'+ str(i) + '.csv'
-    #         self.pick_csv.to_csv(os.path.join(self.search_path, action_pick))
-    #         print("\n", action_pick,"is saved")
-
-    #     elif action == 'place':
-    #         action_place = 'ef_ '+ str(i) + '.csv'
-    #         self.place_csv.to_csv(os.path.join(self.search_path, action_place))
-    #         print("\n", action_place,"is saved")
-
-    #     elif action == 'pour':
-    #         action_pour = 'ef_ '+ str(i) + '.csv'
-    #         self.pour_csv.to_csv(os.path.join(self.search_path, action_place))
-    #         print("\n", action, "is saved")
-
-    #     else:
-    #         print("----Wrong action----")
 
     def init_edge_index(self):
 
@@ -328,9 +139,178 @@ class MakeDataset(Dataset):
         edge_index0_csv.to_csv(save_csv) 
         
         print("\n----ei0.csv file is saved----")
-        # path = '/home/jeni/Desktop/dataloader/seq_dataset/stacking_v2/v2_ex_1_2_34_5/node_features/nf0.csv'
+
+    def pick_inx(self, n, obj1): # obj = ID number
+        # Choose sample
+        sample_inx_path = os.path.join(self.search_path,'edge_index')
+        file_list = natsort.natsorted(os.listdir(sample_inx_path))
+
+        # edge_path = os.path.join(self.search_path, 'test/edge_index',file_list[file_num])
+        edge_path = os.path.join(self.search_path, 'edge_index',file_list[n-1])
+        ef_csv = pd.read_csv(edge_path, index_col=0)
+
+        # Data type) column :'object', index = 'int64'
+        pick_csv = ef_csv
+
+        # Preconditions
+        if obj1 != 0 and obj1 != 8: # Not robot-hand and table (The very first:robot-hand, The very last:table)
+            if pick_csv.loc[obj1,'0'] == 0 and pick_csv.loc[0,f'{obj1}'] == 0: # obj1 is has not relationship with robot-hand
+
+                # Remove 'on' relation (Table) 
+                pick_csv.loc[obj1,'8'] = 0
+                pick_csv.loc[8,f'{obj1}'] = 0
+
+                # Add 'in-grasp' relation (Robot-hand)
+                pick_csv.loc[obj1,'0'] = 1
+                pick_csv.loc[0,f'{obj1}'] = 1
+                print(f'\n[ef_pick{str(obj1)}.csv] \n') 
+
+                # Save files
+                file_name = f'{self.example}_ei{n}.csv'
+                save_path = os.path.join(self.search_path,'edge_index')
+                createFolder(save_path)
+                pick_csv.to_csv(os.path.join(save_path,file_name))
+                   
+                self.pick_csv = pick_csv
+            
+                return pick_csv
+            
+            else:
+                print("\n----Check the '.csv' file again----\nFile lists:", file_list[n-1])
+        else:
+            print("\n----Cannot pick this object----\n")
 
 
+        
+    def place_inx(self, n, obj1, obj2): 
+        edge_inx_path = os.path.join(self.search_path,'edge_index')
+        file_list = natsort.natsorted(os.listdir(edge_inx_path))
+
+        # edge_path = os.path.join(self.search_path, 'test/edge_index',file_list[file_num])
+        edge_path = os.path.join(self.search_path, 'edge_index',file_list[n-1])
+        place_csv = pd.read_csv(edge_path, index_col=0)
+        # place_csv = self.pick_csv
+        
+        # Check obj1 and obj2 range
+        if obj1 != 0 and obj1 != 8 and obj2 != 0:
+            # 'in-grasp' relation (Robot hand O -> X) , object are not equal
+            if place_csv.loc[obj1,'0'] == 1 and place_csv.loc[0,f'{obj1}'] == 1:
+                # Check obj1 and obj2 are equal
+                if obj1 != obj2:
+
+                    # Add 'on' relation with obj1 and obj2
+                    place_csv.loc[obj1,f'{obj2}'] = 1
+                    place_csv.loc[obj2,f'{obj1}'] = 1
+
+                    # Remove 'in-grasp' relation (Robot hand)
+                    place_csv.loc[obj1,'0'] = 0
+                    place_csv.loc[0,f'{obj1}'] = 0
+
+                    
+                    print(f'\n[ef_place_{str(obj1)}_on_{str(obj2)}.csv] \n') 
+
+                    ### Save files
+                    file_name = f'{self.example}_ei{n}.csv'
+                    save_path = os.path.join(self.search_path,'edge_index')
+                    createFolder(save_path)
+                    place_csv.to_csv(os.path.join(save_path,file_name))
+
+                    self.place_csv = place_csv
+
+                    return place_csv
+                
+                else:
+                    print("----Object1 and object2 are equal----")
+            else:
+                print("\n----Robot hand does not hold obj1. Please check the '.csv' file again----\nFile lists:", file_list[n])
+        else:
+            print("----Cannot place this object----")
+            
+            
+
+    def attach_inx(self, n, obj1, obj2):
+        attach_csv = self.place_csv
+        #### Simply attach object one by one 
+        sample_node_path = os.path.join(self.search_path, 'node_features')
+        file_list = natsort.natsorted(os.listdir(sample_node_path))
+        from_node_path = os.path.join(self.search_path, 'node_features', file_list[n])
+        nf = pd.read_csv(from_node_path)
+        # print(nf)
+        attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()[0]
+
+        
+        if obj1 != 0 and obj1 != 8 and obj2 != 0 and obj2 != 8:
+            if self.place_csv.loc[obj1,f'{obj2}'] == 1 and self.place_csv.loc[obj2,f'{obj1}'] == 1:
+                attach_csv = attach_csv.drop(index= obj1)
+                attach_csv = attach_csv.drop(columns= f'{obj1}')
+                attach_csv = attach_csv.drop(index= obj2)
+                attach_csv = attach_csv.drop(columns= f'{obj2}')
+
+                
+                # attach box에 대한 행과 열 추가
+                attach_csv.loc[attached_boxes] = 0
+                attach_csv[f'{attached_boxes}'] = 0
+                
+                # 8번 Table 위에 올려두기
+                attach_csv.loc[attached_boxes, '8'] = 1
+                attach_csv.loc[8, f'{attached_boxes}'] = 1
+
+                ## Save files
+                file_name = f'{self.example}_ei{n}.csv'
+                save_path = os.path.join(self.search_path,'edge_index')
+                createFolder(save_path)
+                attach_csv.to_csv(os.path.join(save_path, file_name))
+                print(f'\n[ef_attach_{str(obj1)}_and_{str(obj2)}.csv] \n')
+                return attach_csv
+            
+
+            else:
+                print("----Obj1 is not <on> Obj2----")
+        else:
+            print("----Cannot attach those object----")
+        
+
+
+    def pour_inx(self,n, obj1, obj2):
+        file = f'{self.example}_ei{n-1}.csv'
+        edge_path = os.path.join(self.search_path, 'edge_index',file)
+        pour_csv = pd.read_csv(edge_path, index_col=0)
+        print("\n[Original]\n",pour_csv,'\n')
+        
+        # Node feature 따라서 만들고 obj1은 bowl이어야 함
+        if obj1 == 6 or obj1 == 7 :
+            for placed_obj in range(1,7):  # placed_obj 1 ~ 7
+
+                # Relation with obj1 (bowl) must be relative
+                if pour_csv.loc[obj1,f'{placed_obj}'] == 1 and pour_csv.loc[placed_obj,f'{obj1}'] == 1:
+                    # print(placed_obj)
+
+                    # Remove relation with obj1
+                    pour_csv.loc[obj1,f'{placed_obj}'] = 0
+                    pour_csv.loc[placed_obj,f'{obj1}'] = 0
+
+                    # Add relation with obj2
+                    pour_csv.loc[obj2,f'{placed_obj}'] = 1
+                    pour_csv.loc[placed_obj,f'{obj2}'] = 1
+                    
+                    # Repeat all applicable 'placed_obj' while if statement is true
+                    continue
+            print("\n[Change]\n",pour_csv)
+               
+            
+            file_name = str(self.example)+'_ei'+str(n)+'.csv'
+            save_path = os.path.join(self.search_path,'edge_index')
+            createFolder(save_path)
+            pour_csv.to_csv(os.path.join(save_path,file_name))
+    
+        else:
+            print("----Object is not a bowl----")
+
+
+
+    
+
+###### Edge attr ######
 
     def init_edge_attr(self):
         list_attr = []
@@ -425,71 +405,21 @@ class MakeDataset(Dataset):
 
         return self.x, self.edge_index, self.edge_attr
         
-
-
-
-    ############################################# Make Edge indexes##########################################
-    def make_edge_index(self, i = int):
-        list_num = [1,2,3,4,5]
-        list_index = []
-
-        unique = 0
-        while unique < 120:
-            unique =  unique + 1
-            # list(1~5 사이 숫자들 랜덤 배열) - 중복 허용해서 나옴
-            sample_list = random.sample(list_num,5)
-            list_index.append(sample_list)
-            seen = []
-            
-            # 중복 제거하고 120개 전부 출력될 때까지 돌림
-            unique_list = [x for x in list_index if x not in seen and not seen.append(x)] 
-            unique = len(unique_list) 
-                
-            
-            # Data type 맞추기 - index) int - list, column) string - list
-            str_sample = [str(x) for x in sample_list]       
-            index_list = [0] + sample_list+ [6,7,8]
-            column_list = ['0'] + str_sample + ['6','7','8']
-            
-
-            # Change Index and column
-            self.edge_index.index = index_list 
-            self.edge_index.index.name = "ID" # Setting index name = 'ID'
-            self.edge_index.columns = column_list 
-            change_edge_index = self.edge_index
-            # print(change_edge_index)
-            
-            # Make folders
-            folder_name = f"{str_sample[0]}_{str_sample[1]}_{str_sample[2]}_{str_sample[3]}_{str_sample[4]}"
-            self.str_sample = str_sample
-            print(folder_name)
-            print(change_edge_index)
-          
-            # # SAVE PATH (edge_index)
-            save_inx_path = os.path.join(self.FILEPATH, self.problem, 'edge_features',folder_name, 'edge_index')
-            createFolder(save_inx_path)
-            
-            # # SAVE CSV FILE (edge_index) #root_path[0]인 경우만
-            save_csv = os.path.join(save_inx_path, str(folder_name)+'_ei' +str(i)+'.csv')
-            change_edge_index.to_csv(save_csv) 
-
-        print((len(list_index), len(unique_list)))
-        print("----Re indexing----")
   
 
     ############################################# Make Edge attributes##########################################
-    def pick_attr(self, save_num):
+    def pick_attr(self, n, obj1):
         # Choose sample
         edge_attr_path = os.path.join(self.search_path,'edge_attr')
         attr_file_list = natsort.natsorted(os.listdir(edge_attr_path))
-        attr_path = os.path.join(edge_attr_path, attr_file_list[save_num-1])
+        attr_path = os.path.join(edge_attr_path, attr_file_list[n-1])
         ea_csv = pd.read_csv(attr_path, index_col=0)
         previous_ea_inx = ea_csv.index.to_list()
 
 
         edge_index_path = os.path.join(self.search_path,'edge_index')
         inx_file_list = natsort.natsorted(os.listdir(edge_index_path))
-        inx_path = os.path.join(edge_index_path,inx_file_list[save_num])
+        inx_path = os.path.join(edge_index_path,inx_file_list[n])
         ei_csv = pd.read_csv(inx_path, index_col=0)
   
 
@@ -504,58 +434,49 @@ class MakeDataset(Dataset):
                 if ef.iat[index, column] == 1:   
                     list_attr1.append((ID_list[index], ID_list[column]))
 
-        
-        # Changed data
-        ea_csv.index = list_attr1
-        ea_csv.index.name = "ID"
-        edge_attr_csv = ea_csv
-        edge_attr_csv_id = edge_attr_csv.index.to_list()
-       
-        
-        # Apparently, wrapping the tuple index in a list works
-        # print(edge_attr_csv.loc[[(0, 4)], 'rel_grasp'])
-        for node_pair in edge_attr_csv_id:
-            print("np",node_pair, type(node_pair))
+        list_0 = [0 for i in range(len(list_attr1))]
+        edge_attr_csv = pd.DataFrame({'ID': list_attr1, 'rel_on_right':list_0, 'rel_on_left': list_0, \
+                                        'rel_in_right':list_0, 'rel_in_left': list_0,
+                                        #'rel_attach':list_0, \
+                                        'rel_in_grasp':list_0, 'rel_grasp': list_0 })
+                                        #'pos_x': list_0, 'pos_y': list_0, 'pos_z': list_0, \
+                                        #'pos_roll':list_0, 'pos_pitch':list_0, 'pos_yaw':list_0})
+
+        edge_attr_csv = edge_attr_csv.set_index("ID")
+
+        for node_pair in list_attr1:
             for pre in previous_ea_inx: 
-                print("pre",pre, type(node_pair))
-                if node_pair == pre:
-                    print("pick node pair", node_pair)
-                    # edge_attr_csv.loc[[node_pair]] = ea_csv.loc[pre].values.tolist()
+                if str(node_pair) == pre:
+                    edge_attr_csv.loc[[node_pair]] = ea_csv.loc[[pre]].values.tolist()
             ret = [int(k) for k in re.split('[^0-9]', str(node_pair)) if k]
             if 'stacking' in self.problem:
-                if ret[0] == 0:
+                if ret[0] == 0 and ret[1] == obj1:
                     edge_attr_csv.loc[[node_pair], :] = 0
                     edge_attr_csv.loc[[node_pair], 'rel_grasp'] = 1
-                if ret[1] == 0:
+                if ret[1] == 0 and ret[0] == obj1:
                     edge_attr_csv.loc[[node_pair], :] = 0
-                    edge_attr_csv.loc[[node_pair], 'rel_in_grasp'] = 1
-                # if ret[0] == 8:
-                #     edge_attr_csv.loc[[node_pair], :] = 0
-                #     edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1
-                # if ret[1] == 8:
-                #     edge_attr_csv.loc[[node_pair], :] = 0
-                #     edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1
-
-        # print("\n[New]\n",edge_attr_csv)
+                    edge_attr_csv.loc[[node_pair], 'rel_in_grasp'] = 1 
+ 
+        print(f"\n[{self.example}_ea{n}.csv]\n",edge_attr_csv)
 
         # # SAVE PATH (edge_attr)
-        # save_csv = os.path.join(edge_attr_path, f'{self.example}_ea{save_num}.csv')
-        # edge_attr_csv.to_csv(save_csv) 
-        # print(f"\n----{self.example}_ea{save_num}.csv is saved----")
+        save_csv = os.path.join(edge_attr_path, f'{self.example}_ea{n}.csv')
+        edge_attr_csv.to_csv(save_csv) 
+        print(f"\n----{self.example}_ea{n}.csv is saved----")
 
 
-    def place_attr(self, save_num, obj1, obj2):
+    def place_attr(self, n, obj1, obj2):
         # Choose attr
         edge_attr_path = os.path.join(self.search_path,'edge_attr')
         attr_file_list = natsort.natsorted(os.listdir(edge_attr_path))
-        attr_path = os.path.join(edge_attr_path, attr_file_list[save_num-1])
+        attr_path = os.path.join(edge_attr_path, attr_file_list[n-1])
         ea_csv = pd.read_csv(attr_path, index_col=0)
         previous_ea_inx = ea_csv.index.to_list()
 
         # Choose index
         edge_index_path = os.path.join(self.search_path,'edge_index')
         inx_file_list = natsort.natsorted(os.listdir(edge_index_path))
-        inx_path = os.path.join(edge_index_path,inx_file_list[save_num])
+        inx_path = os.path.join(edge_index_path,inx_file_list[n])
         ei_csv = pd.read_csv(inx_path, index_col=0)
 
         ef = ei_csv
@@ -569,55 +490,46 @@ class MakeDataset(Dataset):
                 if ef.iat[index, column] == 1:   
                     list_attr1.append((ID_list[index], ID_list[column]))
 
-      
-        # Changed data
-        ea_csv.index = list_attr1
-        ea_csv.index.name = "ID"
-        edge_attr_csv = ea_csv
+        list_0 = [0 for i in range(len(list_attr1))]
+        
+        edge_attr_csv = pd.DataFrame({'ID': list_attr1, 'rel_on_right':list_0, 'rel_on_left': list_0, \
+                                        'rel_in_right':list_0, 'rel_in_left': list_0,
+                                        #'rel_attach':list_0, \
+                                        'rel_in_grasp':list_0, 'rel_grasp': list_0 })
+                                        #'pos_x': list_0, 'pos_y': list_0, 'pos_z': list_0, \
+                                        #'pos_roll':list_0, 'pos_pitch':list_0, 'pos_yaw':list_0})
 
-        edge_attr_csv_id = edge_attr_csv.index.to_list()
+        edge_attr_csv = edge_attr_csv.set_index("ID")
 
-        for node_pair in edge_attr_csv_id:
-            # print("np",node_pair, type(node_pair))
-            for pre in previous_ea_inx: 
-                # print("pre",pre, type(node_pair))
-                if node_pair == pre:
-                    edge_attr_csv.loc[[node_pair]] = ea_csv.loc[pre].values.tolist()
+        for node_pair in list_attr1:
+            for pre in previous_ea_inx:        
+                if str(node_pair) == pre:                
+                    edge_attr_csv.loc[[node_pair]] = ea_csv.loc[[pre]].values.tolist()
             # Grasp로 잡힌 거 놓아주고
             edge_attr_csv.loc[[node_pair], 'rel_grasp'] = 0
             edge_attr_csv.loc[[node_pair], 'rel_in_grasp'] = 0
 
-            ret = [int(k) for k in re.split('[^0-9]', str(node_pair)) if k]
             if 'stacking' in self.problem:
-                # if ret[0] == 8:
-                #     edge_attr_csv.loc[[node_pair], :] = 0
-                #     edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1
-                # if ret[1] == 8:
-                #     edge_attr_csv.loc[[node_pair], :] = 0
-                #     edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1
                 # object끼리 \\On\\ 관계
                 edge_attr_csv.loc[[(obj1,obj2)], :] = 0
                 edge_attr_csv.loc[[(obj2,obj1)], :] = 0
                 edge_attr_csv.loc[[(obj1,obj2)], 'rel_on_right'] = 1
                 edge_attr_csv.loc[[(obj2,obj1)], 'rel_on_left'] = 1
 
-        print("\n[New]\n",edge_attr_csv)
+        print(f"\n[{self.example}_ea{n}.csv]\n",edge_attr_csv)
 
         # SAVE PATH (edge_attr)
-        save_csv = os.path.join(edge_attr_path, f'{self.example}_ea{save_num}.csv')
+        save_csv = os.path.join(edge_attr_path, f'{self.example}_ea{n}.csv')
         edge_attr_csv.to_csv(save_csv) 
-        print(f"\n----{self.example}_ea{save_num}.csv is saved----")
-        # self.place_obj1 = obj1
-        # self.place_obj2 = obj2
-        
-        # return self.place_obj1, self.place_obj2
+        print(f"\n----{self.example}_ea{n}.csv is saved----")
 
 
-    def attach_attr(self, save_num, obj1, obj2):
+
+    def attach_attr(self, n, obj1, obj2):
         # Choose attr
         edge_attr_path = os.path.join(self.search_path,'edge_attr')
         attr_file_list = natsort.natsorted(os.listdir(edge_attr_path))
-        attr_path = os.path.join(edge_attr_path, attr_file_list[save_num-1])
+        attr_path = os.path.join(edge_attr_path, attr_file_list[n-1])
         ea_csv = pd.read_csv(attr_path, index_col=0)
         previous_ea_inx = ea_csv.index.to_list()
         # print("\n[Previous one]\n", previous_ea_inx)
@@ -625,7 +537,7 @@ class MakeDataset(Dataset):
         # Choose index
         edge_index_path = os.path.join(self.search_path,'edge_index')
         inx_file_list = natsort.natsorted(os.listdir(edge_index_path))
-        inx_path = os.path.join(edge_index_path,inx_file_list[save_num])
+        inx_path = os.path.join(edge_index_path,inx_file_list[n])
         ei_csv = pd.read_csv(inx_path, index_col=0)
 
         ef = ei_csv
@@ -642,8 +554,6 @@ class MakeDataset(Dataset):
         # print("[list1]",list_attr1,'\n')
 
         list_0 = [0 for i in range(len(list_attr1))]
-        
-        # print(list_attr, "length", len(list_attr))
         edge_attr_csv = pd.DataFrame({'ID': list_attr1, 'rel_on_right':list_0, 'rel_on_left': list_0, \
                                         'rel_in_right':list_0, 'rel_in_left': list_0,
                                         #'rel_attach':list_0, \
@@ -656,6 +566,7 @@ class MakeDataset(Dataset):
         for node_pair in list_attr1:
             for pre in previous_ea_inx:        
                 if str(node_pair) == pre:
+                    # print("pre",pre)
                     edge_attr_csv.loc[[node_pair]] = ea_csv.loc[[pre]].values.tolist()
             if 'stacking' in self.problem:
                 ret = [int(k) for k in re.split('[^0-9]', str(node_pair)) if k]
@@ -665,16 +576,13 @@ class MakeDataset(Dataset):
                 if ret[1] == 8:
                     edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1
            
-        print("\n[New]\n",edge_attr_csv)
+        print(f"\n[{self.example}_ea{n}.csv]\n",edge_attr_csv)
 
-
-  
-        
 
         ### SAVE PATH (edge_attr)
-        save_csv = os.path.join(edge_attr_path, f'{self.example}_ea{save_num}.csv')
+        save_csv = os.path.join(edge_attr_path, f'{self.example}_ea{n}.csv')
         edge_attr_csv.to_csv(save_csv) 
-        print(f"\n----{self.example}_ea{save_num}.csv is saved----")
+        print(f"\n----{self.example}_ea{n}.csv is saved----")
 
 #################################################################################################
     # def make_edge_attr(self,i): 
@@ -1218,6 +1126,5 @@ mix_pos13 =  {
 
 
 mix_pos = [mix_pos0, mix_pos1,mix_pos2,mix_pos3,mix_pos4,mix_pos5,mix_pos6,mix_pos7,mix_pos8,mix_pos9,mix_pos10,mix_pos11, mix_pos12, mix_pos13]
-
 
 
