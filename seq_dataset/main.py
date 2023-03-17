@@ -1,83 +1,90 @@
 from seq_demo import *
 
 
-def node_features(end, *attach_num):
+# def node_features(end, *attach_num):
+def node_features(end):
     for i in range(0, end): 
-        if i == 0:
-            print(make_data.init_node_features())
-        elif i == attach_num[0] or i == attach_num[1] or i == attach_num[2]: 
-            print(make_data.changed_node_feature(n=i))
-        else:
-            print(make_data.same_node_features(n=i))
+        print(make_data.same_node_features(n=i))
+        # if i == 0:
+        #     print(make_data.init_node_features())
+        # elif i in attach_num:
+        #     print(make_data.changed_node_feature(n=i))
+        # else:
+        #     print(make_data.same_node_features(n=i))
             
                 
 def edge_index(list_inx, *attach_num):
     for i, (n, obj1, obj2) in enumerate(list_inx):
         if i == 0:
             print(make_data.init_edge_index())
-        if n == attach_num[0] or n == attach_num[1] or n == attach_num[2]:
-            print(make_data.attach_inx(n=n, obj1=obj1, obj2=obj2))
-        elif obj2 == None:
+        # if n not in attach_num and obj2 == None:
+        #     print(make_data.pick_inx(n=n, obj1=obj1))
+        # elif n in attach_num:
+        #     print(make_data.attach_inx(n=n, obj1=obj1, obj2=obj2))
+        if obj2 == None:
             print(make_data.pick_inx(n=n, obj1=obj1))
         else:
             print(make_data.place_inx(n=n, obj1=obj1, obj2=obj2))
+
 
 def edge_attr(list_attr, *attach_num):
     for i, (n, obj1, obj2) in enumerate(list_attr):
         if i == 0:
-            print(make_data.init_edge_attr())
-        if n == attach_num[0] or n == attach_num[1] or n == attach_num[2]:
-            print(make_data.attach_attr(n=n, obj1=obj1, obj2=obj2))
-        elif obj2 == None:
+            print(make_data.init_edge_attr(n))
+        if n not in attach_num and obj2 == None:
             print(make_data.pick_attr(n=n, obj1=obj1)) 
+        elif n in attach_num:
+            print(make_data.attach_attr(n=n, obj1=obj1, obj2=obj2))
         else:
             print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
 
 
-def node_features_normal(end):
-    for i in range(0, end): 
-        if i == 0:
-            print(make_data.init_node_features())
-        else:
-            print(make_data.same_node_features(n=i))
+# def node_features_normal(end):
+#     for i in range(0, end): 
+#         if i == 0:
+#             print(make_data.init_node_features())
+#         else:
+#             print(make_data.same_node_features(n=i))
             
                 
-def edge_index_normal(list_inx):
-    for i, (n, obj1, obj2) in enumerate(list_inx):
-        if i == 0:
-            print(make_data.init_edge_index())
-        if obj2 == None:
-            print("n",n)
-            print(make_data.pick_inx(n=n, obj1=obj1))
-        else:
-            print(make_data.place_inx(n=n, obj1=obj1, obj2=obj2))
+# def edge_index_normal(list_inx):
+#     for i, (n, obj1, obj2) in enumerate(list_inx):
+#         if i == 0:
+#             print(make_data.init_edge_index())
+#         if obj2 == None:
+#             print(make_data.pick_inx(n=n, obj1=obj1))
+#         else:
+#             print(make_data.place_inx(n=n, obj1=obj1, obj2=obj2))
 
-def edge_attr_normal(list_attr):
-    for i, (n, obj1, obj2) in enumerate(list_attr):
-        if i == 0:
-            print(make_data.init_edge_attr())
-        if obj2 == None:
-            print(make_data.pick_attr(n=n, obj1=obj1)) 
-        else:
-            print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
+# def edge_attr_normal(list_attr):
+#     for i, (n, obj1, obj2) in enumerate(list_attr):
+#         if i == 0:
+#             print(make_data.init_edge_attr())
+#         if obj2 == None:
+#             print(make_data.pick_attr(n=n, obj1=obj1)) 
+#         else:
+#             print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
 
 
 if __name__ == '__main__':
-    ################################################### [Stacking_5 / 1_2_3_4_5] ########################################################
+    # ################################################### [Stacking_5 / 1_2_3_4_5] ########################################################
     make_data = MakeDataset(problem = 'stacking_5', example= '1_2_3_4_5')
-    stack_normal = [(1, 4, None), (2, 4, 5), (3, 3, None), (4, 3, 4), (5, 2, None), (6, 2, 3), (7, 1, None), (8, 1, 2)]
+
+    
+    # stack_normal = [(1, 4, None), (2, 4, 5), (3, 3, None), (4, 3, 4), (5, 2, None), (6, 2, 3), (7, 1, None), (8, 1, 2)]
   
-    # node_features_normal(9)
-    # edge_index_normal(stack_normal)
-    # edge_attr_normal(stack_normal)
+    # node_features(9)
+    # edge_index(stack_normal, None)
+    # edge_attr(stack_normal, None)
 
     
     ################################################### [Stacking_v2 / 1_2_3_45] ########################################################
-    # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
-    # attach_45 = [(1, 4, None), (2, 4, 5), (3, 4, 5), (4, 3, None), (5, 3, 45), (6, 2, None), (7, 2, 3), (8, 1, None), (9, 1, 2)]
-  
-    # node_features(10, 3)
-    # edge_index(attach_45, 3)
+    make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
+    attach_45 = [(1, 4, None), (2, 4, 5), (3, 4, 5), (4, 3, None), (5, 3, 45), (6, 2, None), (7, 2, 3), (8, 1, None), (9, 1, 2)]
+
+    # node_features(10)
+    edge_index(attach_45, 3)
+    #
     # edge_attr(attach_45, 3)
      ################################################### [Stacking_v2 / 1_2_34_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_34_5')
@@ -145,8 +152,14 @@ if __name__ == '__main__':
     # edge_index(attach_345, 3,6,9)
     # edge_attr(attach_345, 3,6,9)
     
- 
-
+    ################################################### [Mixing_v2 / 1_2_3_45] ########################################################
+    # make_data = MakeDataset(problem = 'mixing_v2', example= '1_2_3_45') 
+    
+    # attach_45 = [(1, 4, None), (2, 4, 5), (3, 4, 5), (4, 3, None), (5, 3, 45), (6, 2, None), (7, 2, 3), (8, 1, None), (9, 1, 2)]
+  
+    # node_features(10, 3)
+    # edge_index(attach_45, 3)
+    # edge_attr(attach_45, 3)
 
 
 
