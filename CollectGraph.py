@@ -112,15 +112,15 @@ class ReadDataset():
         return Data(x, edge_index, edge_attr)
 
 #data checking
-# mix = ReadDataset('stacking_5')
+stack = ReadDataset('stacking_5')
 
-# ex = mix.graph_data(order='1_2_3_4_5', i=3)
+ex = stack.graph_data(order='1_2_3_4_5', i=3)
 
-# print(ex['x'].shape, ex['edge_index'].shape, ex['edge_attr'].shape)
-# print(ex['x'])
-# print(ex['edge_index'])
-# print(ex['edge_attr'])
-# print("end")
+print(ex['x'].shape, ex['edge_index'].shape, ex['edge_attr'].shape)
+print(ex['x'])
+print(ex['edge_index'])
+print(ex['edge_attr'])
+print("end")
 
 
 class ReadDataset_VariNodeNum():
@@ -184,8 +184,6 @@ class ReadDataset_VariNodeNum():
         edge_index, edge_attr = self.edge_features(order, i)
         
         return Data(x, edge_index, edge_attr)
-
-
 
 
 class CollectGraph_VariNodeNum():

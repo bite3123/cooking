@@ -67,9 +67,9 @@ if __name__ == '__main__':
     make_data = MakeDataset(problem = 'stacking_5', example= '1_2_3_4_5')
     stack_normal = [(1, 4, None), (2, 4, 5), (3, 3, None), (4, 3, 4), (5, 2, None), (6, 2, 3), (7, 1, None), (8, 1, 2)]
   
-    node_features_normal(9)
-    edge_index_normal(stack_normal)
-    edge_attr_normal(stack_normal)
+    # node_features_normal(9)
+    # edge_index_normal(stack_normal)
+    # edge_attr_normal(stack_normal)
 
     
     ################################################### [Stacking_v2 / 1_2_3_45] ########################################################
