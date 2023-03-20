@@ -8,31 +8,41 @@ from torch_geometric.data import Data
 from torch_geometric.utils import subgraph
 import torch.nn.functional as F
 import pickle
+import natsort
 
 ## Dataset
 class ReadDataset():
-    def __init__(self, task, sort_edge=True, without_pos=False, fully_connected=True):
+    def __init__(self, task, sort_edge=True, max_node_num = 13):
         # Search path
         # task: stacking / mixing / ...
-        self.search_path = os.path.join(os.getcwd(), 'seq_dataset',task)
-        print("search_path:",self.search_path)
+        self.search_path = os.path.join(os.getcwd(), 'seq_dataset','tasks', task)
+        print("\n[Search_path]\n:",self.search_path)
         
+        self.task = task
         self.sort_edge = sort_edge
-        self.without_pos = without_pos
-        self.fully_connected = fully_connected
+        self.max_node_num = max_node_num
 
+    def input_csv_file(self, feature, order, i):    
+        feature_path = os.path.join(self.search_path, order, feature)
+        file_list = natsort.natsorted(os.listdir(feature_path))
+        input_path = os.path.join(feature_path, file_list[i])
+        
+        return input_path
+
+   
     # Getting node features
-    def node_feature(self, csv_file='nf0.csv'):
+    def node_features(self,  order, i):
         # Search path
-        node_path = os.path.join(self.search_path, "node_features", csv_file)
+        node_path = self.input_csv_file('node_features', order, i)
 
         # Read csv file to tensor
         nf_csv = pd.read_csv(node_path, index_col=0)
+        #nf = torch.Tensor(nf_csv.values)
         node_id = list(map(str,nf_csv.index.to_list()))
         node_id_to_idx = {}
         for i, n in enumerate(node_id):
             node_id_to_idx[n] = i
-        nf = F.pad(torch.Tensor(nf_csv.values), (0,0,0,13-len(node_id_to_idx)), value=0)
+        nf = F.pad(torch.Tensor(nf_csv.values), (0,0,0,self.max_node_num-len(node_id_to_idx)), value=0)
 
         #nf_drop = nf_csv.drop(labels='ID',axis=1) # drop the "ID" column / axis=0 (row), axis=1(column)
         #nf = torch.Tensor(nf_drop.values) # dataframe to tensor
@@ -41,92 +51,16 @@ class ReadDataset():
 
     def edge_features(self, order, i):
         # Search path
-        edge_attr_path = os.path.join(self.search_path, 'edge_features', order, 'edge_attr', order + '_ea' + str(i) + '.csv')
+        edge_attr_path = self.input_csv_file('edge_attr', order, i)
         
         # Read csv file to tensor
         ea_csv = pd.read_csv(edge_attr_path, index_col=0)
-        pos = ea_csv.iloc[:,7:]
 
-        if self.fully_connected is False:
-            ea_csv = ea_csv.iloc[:14, :] #drop zero-value edges
-            pos = pos.iloc[:14, :]
-        if self.without_pos:
-            ea_csv = ea_csv.iloc[:, :7]
+        #if self.fully_connected is False:
+        #    ea_csv = ea_csv.iloc[:14, :] #drop zero-value edges
         if self.sort_edge:
-            ea_csv = ea_csv.sort_index()
-            pos = pos.sort_index()
+            ea_csv = ea_csv.sort_index() #sort with ea_id "(src, dest)"
 
-        ea = torch.Tensor(ea_csv.values) # dataframe to tensor
-        edge_attr = ea.to(dtype = torch.float32)
-        
-        # Read edge_index from index(ID) of edge_attr dataframe
-        ei_list = []
-        for ei in ea_csv.index.to_list():
-            _,src,_,_,dest,_ = ei
-            ei_list.append(torch.tensor([[int(src)], [int(dest)]]))
-        
-        edge_index = torch.cat(ei_list, dim=1)
-
-        return edge_index, edge_attr, pos
-    
-    def graph_data(self, order, i):
-        x = self.node_feature()
-        edge_index, edge_attr = self.edge_features(order, i)
-        
-        return Data(x, edge_index, edge_attr)
-
-#data checking
-#mix = ReadDataset('mixing_5')
-#ex = mix.graph_data(order='1_2_3_5_4', i=3)
-
-#print(ex['x'].shape, ex['edge_index'].shape, ex['edge_attr'].shape)
-#print(ex['edge_index'])
-#print(ex['edge_attr'])
-
-
-class ReadDataset_VariNodeNum():
-    def __init__(self, task, sort_edge=False, without_pos=False, max_node_num=9):
-        # Search path
-        # task: stacking / mixing / ...
-        self.search_path = os.path.join(os.getcwd(), 'seq_dataset',task)
-        print("search_path:",self.search_path)
-        
-        self.sort_edge = sort_edge
-        self.without_pos = without_pos
-        self.max_node_num = max_node_num
-
-    # Getting node features
-    def node_feature(self, order, i):
-        # Search path
-        node_feature_path = os.path.join(self.search_path, 'node_features', order, order + '_nf' + str(i) + '.csv')
-
-        # Read csv file to tensor
-        nf_csv = pd.read_csv(node_feature_path, index_col=0)
-        node_id = list(map(str,nf_csv.index.to_list()))
-        node_id_to_idx = {}
-        node_idx_to_id = {}
-        for i, n in enumerate(node_id):
-            node_id_to_idx[n] = i
-            node_idx_to_id[i] = n
-        nf = F.pad(torch.Tensor(nf_csv.values), (0,0,0,self.max_node_num-len(node_id_to_idx)), value=0)
-
-        #nf_drop = nf_csv.drop(labels='ID',axis=1) # drop the "ID" column / axis=0 (row), axis=1(column)
-        #nf = torch.Tensor(nf_drop.values) # dataframe to tensor
-        x = nf.to(dtype=torch.float32)
-        return x, node_id_to_idx, node_idx_to_id
-
-    def edge_features(self, order, i):
-        # Search path
-        edge_attr_path = os.path.join(self.search_path, 'edge_features', order, 'edge_attr', order + '_ea' + str(i) + '.csv')
-        
-        # Read csv file to tensor
-        ea_csv = pd.read_csv(edge_attr_path, index_col=0)
-        ea_csv = ea_csv.iloc[:14, :] #drop zero-value edges
-        if self.without_pos:
-            ea_csv = ea_csv.iloc[:, :7]
-        if self.sort_edge:
-            ea_csv = ea_csv.sort_index()
-        
         ea = torch.Tensor(ea_csv.values) # dataframe to tensor
         edge_attr = ea.to(dtype = torch.float32)
         
@@ -141,53 +75,115 @@ class ReadDataset_VariNodeNum():
         return edge_index, edge_attr
     
     def graph_data(self, order, i):
-        x = self.node_feature()
+        x = self.node_features(order, i)
         edge_index, edge_attr = self.edge_features(order, i)
         
         return Data(x, edge_index, edge_attr)
+#data checking
+mix = ReadDataset('stacking_5')
+ex = mix.graph_data(order='1_2_3_4_5', i=3)
 
-class CollectGraph_VariNodeNum():
-    def __init__(self, goal_next=False, key_node=True, fc_graph=False):
-        self.goal_next = goal_next
-        self.action_encoder = {'pick':[1, 0, 0], 'place':[0, 1, 0], 'pour':[0, 0, 1]}
-        self.key_node = key_node
-        self.fc_graph = fc_graph
-        #key_node check
-        #concat check
-            #edge_attr order check
-        #fully_connected check? (implement)
+print(ex['x'].shape, ex['edge_index'].shape, ex['edge_attr'].shape)
+print(ex['edge_index'])
+print(ex['edge_attr'])
+
+class CollectGraph_Stack5():
+    def __init__(self):
+        self.action_encoder = {'pick':[1, 0, 0, 0], 'place':[0, 1, 0, 0], 'pour':[0, 0, 1, 0], 'mix':[0, 0, 0, 1]}        
+        self.edge_attr_dim = 6
         
-
-    def collect_graph(self):
+    def collect_graph(self, data_type, auto_save=False, dataset_name=None):
         collect_graph = []
 
-        collect_graph.extend(self.collect_stacking5())
-        collect_graph.extend(self.collect_mixing5())
-        return collect_graph
+        collect_graph.extend(self.collect_stacking5(data_type))
+        if auto_save:
+            self.dataset_save(data_type, dataset_name, collect_graph)
 
-    def collect_stacking5(self):
+        return collect_graph
+    
+    def concat_state_and_goal(self, state_ei, state_ea, goal_ei, goal_ea):
+        ei_set = set()
+        for i_s in range(state_ei.size(dim=-1)):
+            ei_set.add(tuple(state_ei[:,i_s].tolist()))
+        for i_g in range(goal_ei.size(dim=-1)):
+            ei_set.add(tuple(goal_ei[:,i_g].tolist()))
+        cat_ei_list = list(map(lambda x:torch.Tensor(x).unsqueeze(-1), ei_set))
+        cat_ei = torch.cat(cat_ei_list, dim=1)
+
+        cat_ei_len = cat_ei.size(dim=-1)
+
+        cat_ea = torch.zeros((cat_ei_len, 2*self.edge_attr_dim))
+
+        for i in range(cat_ei_len):
+            for i_s in range(state_ei.size(dim=-1)):
+                if torch.equal(cat_ei[:,i],state_ei[:, i_s]):
+                    cat_ea[i, :6] = state_ea[i_s,:]
+            for i_g in range(goal_ei.size(dim=-1)):
+                if torch.equal(cat_ei[:,i],goal_ei[:, i_g]):
+                    cat_ea[i, 6:] = goal_ea[i_g,:]
+        
+        return cat_ei, cat_ea
+
+    def collect_stacking5(self, data_type):
         stacking5_graph = []
-        stack_5 = ReadDataset_VariNodeNum(task='stacking_5')
+        stack_5 = ReadDataset(task='stacking_5', sort_edge=True)
 
         stack_action = ['pick','place','pick','place','pick','place','pick','place']
         stack_target_obj = [4, 5, 3, 4, 2, 3, 1, 2]
 
-        block_order_list = os.path.join(stack_5.search_path, 'edge_features')
-        for order in os.listdir(block_order_list):
-            if not(self.goal_next):
-                goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=8)
+        order = '1_2_3_4_5'
+        block_order_num = [1, 2, 3, 4, 5]
 
-            block_order_num = list(map(int, order.split('_')))
+        if data_type == 'action':
+            goal_state_num = [8, 6, 4, 2]
+            for i_g in goal_state_num:
+                goal_node_feature = stack_5.node_features(order=order, i=i_g)
+                goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i_g)
 
+
+                for i in range(i_g):
+                    x = stack_5.node_features(order=order, i=i)
+                    state_edge_index, state_edge_attr = stack_5.edge_features(order=order, i=i)
+
+                    cat_edge_index, cat_edge_attr = self.concat_state_and_goal(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
+                    
+                    action_code = torch.Tensor(self.action_encoder[stack_action[i]])
+
+                    target_object_index = block_order_num[stack_target_obj[i]-1]
+                    target_object_score = np.zeros(x.shape[0], dtype=int)
+                    target_object_score[target_object_index] = 1
+                    target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
+                    graph_dict_data = {'input':{},
+                                    'target':{'action':[],
+                                                'object':[]
+                                                },
+                                    'info':{'order':str(),
+                                            'step':int(),
+                                            'demo':str()
+                                            }
+                                                }
+                    
+                    graph_dict_data['input']['x'] = x
+                    graph_dict_data['input']['edge_index'] = state_edge_index
+                    graph_dict_data['input']['edge_attr'] = cat_edge_attr
+
+                    graph_dict_data['target']['action'] = action_code
+                    graph_dict_data['target']['object'] = target_object_score
+
+                    graph_dict_data['info']['order'] = order
+                    graph_dict_data['info']['step'] = i
+                    graph_dict_data['info']['demo'] = "stacking_5"
+
+                    stacking5_graph.append(graph_dict_data)
+            return stacking5_graph
+        
+        elif data_type == 'dynamics':
             for i in range(8):
-                x, node_id_to_idx = stack_5.node_feature(order=order, i=i)
-
+                x = stack_5.node_features(order=order, i=i)
                 state_edge_index, state_edge_attr = stack_5.edge_features(order=order, i=i)
 
-                if self.goal_next:
-                    goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i+1)
-
-                cat_edge_attr = torch.cat((state_edge_attr, goal_edge_attr), dim=1)
+                goal_node_feature = stack_5.node_features(order=order, i=i+1)
+                goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i+1)
                 
                 action_code = torch.Tensor(self.action_encoder[stack_action[i]])
 
@@ -195,20 +191,25 @@ class CollectGraph_VariNodeNum():
                 target_object_score = np.zeros(x.shape[0], dtype=int)
                 target_object_score[target_object_index] = 1
                 target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
-            
-                graph_dict_data = {'input':{},
-                                'target':{'action':[],
+
+                graph_dict_data = {'state':{},
+                                    'goal':{},
+                                    'target':{'action':[],
                                             'object':[]
                                             },
-                                'info':{'order':str(),
+                                    'info':{'order':str(),
                                         'step':int(),
                                         'demo':str()
                                         }
                                             }
                 
-                graph_dict_data['input']['x'] = x
-                graph_dict_data['input']['edge_index'] = state_edge_index
-                graph_dict_data['input']['edge_attr'] = cat_edge_attr
+                graph_dict_data['state']['x'] = x
+                graph_dict_data['state']['edge_index'] = state_edge_index
+                graph_dict_data['state']['edge_attr'] = state_edge_attr
+
+                graph_dict_data['goal']['x'] = goal_node_feature
+                graph_dict_data['goal']['edge_index'] = goal_edge_index
+                graph_dict_data['goal']['edge_attr'] = goal_edge_attr
 
                 graph_dict_data['target']['action'] = action_code
                 graph_dict_data['target']['object'] = target_object_score
@@ -218,264 +219,57 @@ class CollectGraph_VariNodeNum():
                 graph_dict_data['info']['demo'] = "stacking_5"
 
                 stacking5_graph.append(graph_dict_data)
-        return stacking5_graph
-
-
-
-    def collect_mixing5(self):
-        mixing5_graph = []
-        mix_5 = ReadDataset(task='mixing_5')
-
-        x = mix_5.node_feature()
-        mix_action = ['pick','place','pick','place','pick','place','pick','place','pick','place','pick','pour','place']
-        mix_target_obj = [5, 6, 4, 6, 3, 6, 2, 6, 1, 6, 6, 7, 8]
-
-        block_order_list = os.path.join(mix_5.search_path, 'edge_features')
-        for order in os.listdir(block_order_list):
-            if not(self.goal_next):
-                goal_edge_index, goal_edge_attr = mix_5.edge_features(order=order, i=13)
-
-            block_order_num = list(map(int, order.split('_')))
-            block_order_num.extend([6, 7, 8])
-
-            for i in range(13):
-                state_edge_index, state_edge_attr = mix_5.edge_features(order=order, i=i)
-
-                if self.goal_next:
-                    goal_edge_index, goal_edge_attr = mix_5.edge_features(order=order, i=i+1)
-
-                cat_edge_attr = torch.cat((state_edge_attr, goal_edge_attr), dim=1)
-                
-                action_code = torch.Tensor(self.action_encoder[mix_action[i]])
- 
-                target_object_index = block_order_num[mix_target_obj[i]-1]
-                target_object_score = np.zeros(x.shape[0], dtype=int)
-                target_object_score[target_object_index] = 1
-                target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
-            
-                graph_dict_data = {'input':{},
-                                'target':{'action':[],
-                                            'object':[]
-                                            },
-                                'info':{'order':str(),
-                                        'step':int(),
-                                        'demo':str()
-                                        }
-                                            }
-                
-                graph_dict_data['input']['x'] = x
-                graph_dict_data['input']['edge_index'] = state_edge_index
-                graph_dict_data['input']['edge_attr'] = cat_edge_attr
-
-                graph_dict_data['target']['action'] = action_code
-                graph_dict_data['target']['object'] = target_object_score
-
-                graph_dict_data['info']['order'] = order
-                graph_dict_data['info']['step'] = i
-                graph_dict_data['info']['demo'] = "mixing_5"
-
-                mixing5_graph.append(graph_dict_data)
-        return mixing5_graph
-
-class CollectGraph():
-    def __init__(self, goal_next=False, key_node=False, fc_graph=True):
-        self.goal_next = goal_next
-        self.action_encoder = {'pick':[1, 0, 0], 'place':[0, 1, 0], 'pour':[0, 0, 1]}
-        self.key_node = key_node
-        self.fc_graph = fc_graph
-        #key_node check
-        #concat check
-            #edge_attr order check
-        #fully_connected check? (implement)
+            return stacking5_graph
         
+    def data_split(self, total_dataset):
+        print("#####dataset split#####")
+        proportions = [0.7, 0.15, 0.15]
+        lengths = [int(p*len(total_dataset)) for p in proportions]
+        lengths[-1] = len(total_dataset) - sum(lengths[:-1])   
+        train, val, test = random_split(total_dataset, lengths)
+        print("num of train:{}".format(len(train)))
+        print("num of val:{}".format(len(val)))
+        print("num of test:{}".format(len(test)))
+        return train, val, test
+    
+    def dataset_save(self, data_type, dataset_name, total_dataset):
+        train, val, test = self.data_split(total_dataset)
+        #data_type: 'action' | 'dynamics'
+        dataset_path = "./datasets/" + dataset_name + "/" + data_type
+        if not os.path.exists(dataset_path):
+            os.makedirs(dataset_path)
+        if not os.path.exists(dataset_path+"/train"):
+            os.makedirs(dataset_path+"/train")
+        if not os.path.exists(dataset_path+"/val"):
+            os.makedirs(dataset_path+"/val")
+        if not os.path.exists(dataset_path+"/test"):
+            os.makedirs(dataset_path+"/test")
 
-    def collect_graph(self):
-        collect_graph = []
+        print("#####dataset saved#####")
+        for i, g in enumerate(train):
+            file_path = os.path.join(dataset_path,"train","graph_"+str(i))
+            with open(file_path, "wb") as outfile:
+                pickle.dump(g, outfile)
 
-        collect_graph.extend(self.collect_stacking5())
-        collect_graph.extend(self.collect_mixing5())
 
-        return collect_graph
+        for i, g in enumerate(val):
+            file_path = os.path.join(dataset_path,"val","graph_"+str(i))
+            with open(file_path, "wb") as outfile:
+                pickle.dump(g, outfile)
 
-    def collect_stacking5(self):
-        stacking5_graph = []
-        stack_5 = ReadDataset(task='stacking_5', sort_edge=False,fully_connected=False)
 
-        x = stack_5.node_feature()
-
-        stack_action = ['pick','place','pick','place','pick','place','pick','place']
-        stack_target_obj = [4, 5, 3, 4, 2, 3, 1, 2]
-
-        block_order_list = os.path.join(stack_5.search_path, 'edge_features')
-        for order in os.listdir(block_order_list):
-            if not(self.goal_next):
-                goal_edge_index, goal_edge_attr, goal_pos = stack_5.edge_features(order=order, i=8)
-
-            block_order_num = list(map(int, order.split('_')))
-
-            for i in range(8):
-                state_edge_index, state_edge_attr, state_pos = stack_5.edge_features(order=order, i=i)
-
-                if self.goal_next:
-                    goal_edge_index, goal_edge_attr, goal_pos = stack_5.edge_features(order=order, i=i+1)
-
-                cat_edge_attr = torch.cat((state_edge_attr, goal_edge_attr), dim=1)
-                
-                action_code = torch.Tensor(self.action_encoder[stack_action[i]])
-
-                target_object_index = block_order_num[stack_target_obj[i]-1]
-                target_object_score = np.zeros(x.shape[0], dtype=int)
-                target_object_score[target_object_index] = 1
-                target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
-            
-                graph_dict_data = {'input':{},
-                                'target':{'action':[],
-                                            'object':[]
-                                            },
-                                'info':{'order':str(),
-                                        'step':int(),
-                                        'demo':str()
-                                        }
-                                            }
-                
-                graph_dict_data['input']['x'] = x
-                graph_dict_data['input']['edge_index'] = state_edge_index
-                graph_dict_data['input']['edge_attr'] = cat_edge_attr
-
-                graph_dict_data['target']['action'] = action_code
-                graph_dict_data['target']['object'] = target_object_score
-
-                graph_dict_data['info']['order'] = order
-                graph_dict_data['info']['step'] = i
-                graph_dict_data['info']['demo'] = "stacking_5"
-
-                stacking5_graph.append(graph_dict_data)
-        return stacking5_graph
+        for i, g in enumerate(test):
+            file_path = os.path.join(dataset_path,"test","graph_"+str(i))
+            with open(file_path, "wb") as outfile:
+                pickle.dump(g, outfile)
 
 
 
-    def collect_mixing5(self):
-        mixing5_graph = []
-        mix_5 = ReadDataset(task='mixing_5', fully_connected=False)
+#action data
+data = CollectGraph_Stack5()
+action_data = data.collect_graph(data_type='action', dataset_name='stacking5_posX',auto_save=True)
+print("num of data:{}".format(len(action_data)))
 
-        x = mix_5.node_feature()
-        mix_action = ['pick','place','pick','place','pick','place','pick','place','pick','place','pick','pour','place']
-        mix_target_obj = [5, 6, 4, 6, 3, 6, 2, 6, 1, 6, 6, 7, 8]
-
-        block_order_list = os.path.join(mix_5.search_path, 'edge_features')
-        for order in os.listdir(block_order_list):
-            if not(self.goal_next):
-                goal_edge_index, goal_edge_attr = mix_5.edge_features(order=order, i=13)
-
-            block_order_num = list(map(int, order.split('_')))
-            block_order_num.extend([6, 7, 8])
-
-            for i in range(13):
-                state_edge_index, state_edge_attr = mix_5.edge_features(order=order, i=i)
-
-                if self.goal_next:
-                    goal_edge_index, goal_edge_attr = mix_5.edge_features(order=order, i=i+1)
-
-                cat_edge_attr = torch.cat((state_edge_attr, goal_edge_attr), dim=1)
-                
-                action_code = torch.Tensor(self.action_encoder[mix_action[i]])
- 
-                target_object_index = block_order_num[mix_target_obj[i]-1]
-                target_object_score = np.zeros(x.shape[0], dtype=int)
-                target_object_score[target_object_index] = 1
-                target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
-            
-                graph_dict_data = {'input':{},
-                                'target':{'action':[],
-                                            'object':[]
-                                            },
-                                'info':{'order':str(),
-                                        'step':int(),
-                                        'demo':str()
-                                        }
-                                            }
-                
-                graph_dict_data['input']['x'] = x
-                graph_dict_data['input']['edge_index'] = state_edge_index
-                graph_dict_data['input']['edge_attr'] = cat_edge_attr
-
-                graph_dict_data['target']['action'] = action_code
-                graph_dict_data['target']['object'] = target_object_score
-
-                graph_dict_data['info']['order'] = order
-                graph_dict_data['info']['step'] = i
-                graph_dict_data['info']['demo'] = "mixing_5"
-
-                mixing5_graph.append(graph_dict_data)
-        return mixing5_graph
-
-####Test####
-data = CollectGraph()
-collected_graph = data.collect_graph()
-print("num of data:{}".format(len(collected_graph)))
-
-action_dist = [0, 0, 0]
-for data in collected_graph:
-    sample = data['target']['action'].tolist()
-    if sample == [1, 0, 0]:
-        action_dist[0] += 1
-    elif sample == [0, 1, 0]:
-        action_dist[1] += 1
-    else :
-        action_dist[2] += 1
-print(action_dist)
-
-
-print("#####dataset split#####")
-proportions = [0.8, 0.1, 0.1]
-lengths = [int(p*len(collected_graph)) for p in proportions]
-lengths[-1] = len(collected_graph) - sum(lengths[:-1])   
-train, val, test = random_split(collected_graph, lengths)
-print("num of train:{}".format(len(train)))
-print("num of val:{}".format(len(val)))
-print("num of test:{}".format(len(test)))
-
-
-for g in collected_graph:
-    #print(g)
-    print("#############Checking#############")
-
-    print("Stacking Order: ", g['info']['order'])
-    print("Step in order: ", g['info']['step'])
-    print("\nCurrent State:")
-    print("\tedge_index:\n",g['input']['edge_index'].numpy())
-    print("\tedge_attr:\n",g['input']['edge_attr'].numpy())
-
-    print("target action:\n",g['target']['action'])
-    print("target object:\n", g['target']['object'])
-    input()
-'''
-
-dataset_path = "./datasets/stack_mix_fc_test"
-if not os.path.exists(dataset_path):
-    os.makedirs(dataset_path)
-if not os.path.exists(dataset_path+"/train"):
-    os.makedirs(dataset_path+"/train")
-if not os.path.exists(dataset_path+"/val"):
-    os.makedirs(dataset_path+"/val")
-if not os.path.exists(dataset_path+"/test"):
-    os.makedirs(dataset_path+"/test")
-
-print("#####dataset saved#####")
-for i, g in enumerate(train):
-    file_path = os.path.join(dataset_path,"train","graph_"+str(i))
-    with open(file_path, "wb") as outfile:
-        pickle.dump(g, outfile)
-
-
-for i, g in enumerate(val):
-    file_path = os.path.join(dataset_path,"val","graph_"+str(i))
-    with open(file_path, "wb") as outfile:
-        pickle.dump(g, outfile)
-
-
-for i, g in enumerate(test):
-    file_path = os.path.join(dataset_path,"test","graph_"+str(i))
-    with open(file_path, "wb") as outfile:
-        pickle.dump(g, outfile)
-'''
+#dynamics data
+dynamics_data = data.collect_graph(data_type='dynamics', dataset_name='stacking5_posX', auto_save=True)
+print("num of data:{}".format(len(dynamics_data)))

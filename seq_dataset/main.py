@@ -1,108 +1,151 @@
 from seq_demo import *
 
 
+def node_features(end, *attach_num):
+    for i in range(0, end): 
+        if i == 0:
+            print(make_data.init_node_features())
+        elif i == attach_num[0] or i == attach_num[1] or i == attach_num[2]: 
+            print(make_data.changed_node_feature(n=i))
+        else:
+            print(make_data.same_node_features(n=i))
+            
+                
+def edge_index(list_inx, *attach_num):
+    for i, (n, obj1, obj2) in enumerate(list_inx):
+        if i == 0:
+            print(make_data.init_edge_index())
+        if n == attach_num[0] or n == attach_num[1] or n == attach_num[2]:
+            print(make_data.attach_inx(n=n, obj1=obj1, obj2=obj2))
+        elif obj2 == None:
+            print(make_data.pick_inx(n=n, obj1=obj1))
+        else:
+            print(make_data.place_inx(n=n, obj1=obj1, obj2=obj2))
+
+def edge_attr(list_attr, *attach_num):
+    for i, (n, obj1, obj2) in enumerate(list_attr):
+        if i == 0:
+            print(make_data.init_edge_attr())
+        if n == attach_num[0] or n == attach_num[1] or n == attach_num[2]:
+            print(make_data.attach_attr(n=n, obj1=obj1, obj2=obj2))
+        elif obj2 == None:
+            print(make_data.pick_attr(n=n, obj1=obj1)) 
+        else:
+            print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
+
+
+def node_features_normal(end):
+    for i in range(0, end): 
+        if i == 0:
+            print(make_data.init_node_features())
+        else:
+            print(make_data.same_node_features(n=i))
+            
+                
+def edge_index_normal(list_inx):
+    for i, (n, obj1, obj2) in enumerate(list_inx):
+        if i == 0:
+            print(make_data.init_edge_index())
+        if obj2 == None:
+            print("n",n)
+            print(make_data.pick_inx(n=n, obj1=obj1))
+        else:
+            print(make_data.place_inx(n=n, obj1=obj1, obj2=obj2))
+
+def edge_attr_normal(list_attr):
+    for i, (n, obj1, obj2) in enumerate(list_attr):
+        if i == 0:
+            print(make_data.init_edge_attr())
+        if obj2 == None:
+            print(make_data.pick_attr(n=n, obj1=obj1)) 
+        else:
+            print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
 
 
 if __name__ == '__main__':
-    # make_data = MakeDataset(problem = 'stacking_5', example = 'ex_1_2_3_4_5')
-    
-
-    ## Saving files
-    # FILEPATH, _ = os.path.split(os.path.realpath(__file__))
-    # print(FILEPATH)
-    # save_path = os.path.join(FILEPATH,'stacking_velcro2',file_name, 'node_features')
-    # save_path = os.path.join(FILEPATH,'stacking_velcro2',file_name, 'edge_index')
-    # save_path = os.path.join(FILEPATH,'stacking_velcro2',file_name, 'edge_attr')
-    # createFolder(save_path)
+    ################################################### [Stacking_5 / 1_2_3_4_5] ########################################################
+    make_data = MakeDataset(problem = 'stacking_5', example= '1_2_3_4_5')
+    stack_normal = [(1, 4, None), (2, 4, 5), (3, 3, None), (4, 3, 4), (5, 2, None), (6, 2, 3), (7, 1, None), (8, 1, 2)]
   
-
-# Pick, place, pour 
-
-    # print(make_data.pick(file_num = 0, obj1 = 5))
-    # print(make_data.place(file_num = 0, obj1 = 5, obj2= 6))
-    # print(make_data.pick(file_num = 0, obj1 = 4))
-    # print(make_data.place(file_num = 0, obj1 = 4, obj2= 6))
-    # print(make_data.pick(file_num = 0, obj1 = 3))
-    # print(make_data.place(file_num = 4, obj1 = 3, obj2= 6))
-   
-    # print(make_data.pick(file_num = 0, obj1 = 5))
-    # print(make_data.place(file_num = 0, obj1 = 5, obj2= 6))
-    # print(make_data.pick(file_num = 1, obj1 = 6))
-    # print(make_data.pour(file_num = 0, obj1 = 6 , obj2 = 7))
-
+    # node_features_normal(9)
+    # edge_index_normal(stack_normal)
+    # edge_attr_normal(stack_normal)
 
     
-
-
-    make_data = MakeDataset(problem = 'mixing_5', example = 'mix_ex_1_2_3_4_5')
-    # make_data = MakeDataset(problem = 'stacking_5', example = 'ex_1_2_3_4_5')
+    ################################################### [Stacking_v2 / 1_2_3_45] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
+    # attach_45 = [(1, 4, None), (2, 4, 5), (3, 4, 5), (4, 3, None), (5, 3, 45), (6, 2, None), (7, 2, 3), (8, 1, None), (9, 1, 2)]
   
-    for a in range(0, 12): # stacking (0,9) 0~8, mixing (0,12) 0~11
-    ################### Call sample data ####################
-        # action_seq = ['pick','place','pick','place','pick','place','pick','place','pick','place']
-        print(f"\n[[[[[Task{a}]]]]]")
-        print(make_data.sample_data(i=a))
-        #[Warning]#### 0으로 시작 # print(make_data.init_edge_attr(file_num = a))
+    # node_features(10, 3)
+    # edge_index(attach_45, 3)
+    # edge_attr(attach_45, 3)
+     ################################################### [Stacking_v2 / 1_2_34_5] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_34_5')
+    # attach_34 = [(1, 3, None), (2, 3, 4), (3, 3, 4), (4, 34, None), (5, 34, 5), (6, 2, None), (7, 2, 34), (8, 1, None), (9, 1, 2)]
+    
+    # node_features(10, 3)
+    # edge_index(attach_34, 3)
+    # edge_attr(attach_34, 3)
+     ################################################### [Stacking_v2 / 1_23_4_5] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v2', example= '1_23_4_5')
+    # attach_23 = [(1, 4, None), (2, 4, 5), (3, 2, None), (4, 2, 3), (5, 2, 3), (6, 23, None), (7, 23, 4), (8, 1, None), (9, 1, 23)]
+    
+    # node_features(10, 5)
+    # edge_index(attach_23, 5)
+    # edge_attr(attach_23, 5)
+     ################################################### [Stacking_v2 / 12_3_4_5] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v2', example= '12_3_4_5')
+    # attach_12 = [(1, 4, None), (2, 4, 5), (3, 3, None), (4, 3, 4), (5, 1, None), (6, 1, 2), (7, 1, 2), (8, 12, None), (9, 12, 3)]
+    
+    # node_features(10, 7)
+    # edge_index(attach_12, 7)
+    # edge_attr(attach_12, 7)
+     ################################################### [Stacking_v2 / 12_3_45] ########################################################
+     # 2개씩 붙는 것도 있겠다
+     
+     ################################################### [Stacking_v3 / 1_2_345] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v3', example= '1_2_345')
+    # attach_345 = [(1, 4, None), (2, 4, 5), (3, 4, 5), (4, 3, None), (5, 3, 45), (6, 3, 45), (7, 2, None), (8, 2, 345), (9, 1, None), (10, 1, 2)]
+    
+    
+    # node_features(11, 3,6)
+    # edge_index(attach_345, 3,6)
+    # edge_attr(attach_345, 3,6)
 
-
-        ### Checking graphs
-        # make_data.make_graph(fig_num=a, pos = mix_pos[a])
-        # make_data.make_edge_index(i=a) 
-        # make_data.make_edge_attr(i=a) # def make_edge_index실행 후에 돌려
-
-        # # Object 5
-        # print(make_data.pick(file_num = 0, obj1 = 5))
-        # print(make_data.place(obj1 = 5, obj2=6))
-            
-        # # Object 4
-        # print(make_data.pick(file_num = 2, obj1 = 4))
-        # print(make_data.place(obj1 = 4, obj2=6)) 
-
-        # # Object 3
-        # print(make_data.pick(file_num = 4, obj1 = 3))
-        # print(make_data.place(obj1 = 3, obj2=6)) 
-
-        # # Object 2
-        # print(make_data.pick(file_num = 6, obj1 = 2))
-        # print(make_data.place(obj1 = 2, obj2=6)) 
-
-        # # Object 1
-        # print(make_data.pick(file_num = 8, obj1 = 1))
-        # print(make_data.place(obj1 = 1, obj2=6)) 
-
-        # # Pour object 6 to 7
-        # print(make_data.pour(file_num= 10, obj1= 6, obj2=7))
-
-
-
-        # ### Checking graphs
-        # # make_data.make_graph(fig_num=a, pos = position[a])
-        # make_data.make_edge_index(i=a) 
-        # # make_data.make_edge_attr(i=a) # def make_edge_index실행 후에 돌려
-
-# plt.figure(figsize=)
-
-### Checking paths
-
-    # action_mix = ['pick','place','pick','place','pick','place','pick','place','pick','place','pour']
-    action_v2_stacking = ['pick','place','pick','place','pick','place','pick','place']
-    action_v3_stacking = ['pick','place','pick','place','pick','place']
-    action_v4_stacking = ['pick','place','pick','place']
-    ### action_v_mixing 고민을 더 해봐야 함! -> 덩이로 묶여서 실행이 되야함 
-
-# print(make_data.pick(i=2, obj1=1))
-# print(make_data.place(i=1, obj1=1, obj2=2))  # e.g.) obj1=3, obj2=4 -> obj1->obj2
-
-
-# print(make_data.pick(i=0, obj1= 2))
-
-
-# print(make_data.place(i=3,obj1=2, obj2=3))
-
-
-# make_data.save_file(action='pick')
-# make_data.save_file(action='place')
-
+    # attach_345 
+     ################################################### [Stacking_v3 / 1_234_5] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v3', example= '1_234_5')
+    # attach_345 = [(1, 3, None), (2, 3, 4), (3, 3, 4), (4, 2, None), (5, 2, 34), (6, 2, 34), (7, 234, None), (8, 234, 5), (9, 1, None), (10, 1, 234)]
+    
+    
+    # node_features(11, 3,6)
+    # edge_index(attach_345, 3,6)
+    # edge_attr(attach_345, 3,6)
+     ################################################### [Stacking_v3 / 123_4_5] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v3', example= '123_4_5')
+    # attach_345 = [(1, 4, None), (2, 4, 5), (3, 2, None), (4, 2, 3), (5, 2, 3), (6, 1, None), (7, 1, 23), (8, 1, 23), (9, 123, None), (10, 123, 4)]
+    
+    # node_features(11, 5,8)
+    # edge_index(attach_345, 5,8)
+    # edge_attr(attach_345, 5,8)
+     ################################################### [Stacking_v4 / 1_2345] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v4', example= '1_2345')
+    # attach_345 = [(1, 4, None), (2, 4, 5), (3, 4, 5), (4, 3, None), (5, 3, 45), (6, 3 ,45), (7, 2, None), \
+    #               (8, 2, 345), (9, 2, 345), (10, 1, None), (11, 1, 2345)]
+    
+    # node_features(12, 3,6,9)
+    # edge_index(attach_345, 3,6,9)
+    # edge_attr(attach_345, 3,6,9)
+     ################################################### [Stacking_v4 / 1234_5] ########################################################
+    # make_data = MakeDataset(problem = 'stacking_v4', example= '1234_5')
+    # attach_345 = [(1, 3, None), (2, 3, 4), (3, 3, 4), (4, 2, None), (5, 2, 34), (6, 2 ,34), (7, 1, None), \
+    #               (8, 1, 234), (9, 1, 234), (10, 1234, None), (11, 1234, 5)]
+    
+    # node_features(12, 3,6,9)
+    # edge_index(attach_345, 3,6,9)
+    # edge_attr(attach_345, 3,6,9)
+    
+ 
 
 
 
