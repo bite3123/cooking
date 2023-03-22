@@ -43,8 +43,6 @@ class MakeDataset(Dataset):
         return input_df
     
     
-
-    
     def output_csv_file(self, n, features, which_csv):
         if features == 'node_features':
             file_name = f'{self.example}_nf{n}.csv'
@@ -61,12 +59,53 @@ class MakeDataset(Dataset):
 
 
 
+    def df_stacking_v2(self,nf):
+        attach_v = nf[nf['Property_V'] == 1]
+        attach_id = attach_v.index.to_list()
+        # print("\nAttach ID",attach_id)
+        
+        attach_boxes = str(attach_id[-2]) + str(' + ')+ str(attach_id[-1])
+        nf.loc[attach_boxes] = [0]*len(nf.columns)
+        nf.loc[:,'Type_Attached_Boxes'] = [0]*(len(nf.index)-1) + [1]
+        nf.loc[attach_boxes, ['Property_V', 'Property_G']] = 1
+        self.attach_id = attach_id
+
+    def df_stacking_v3(self,nf):
+        # print("\n[Middle]\n",nf)
+        attach_v = nf[nf['Property_V'] == 1]
+        attach_id = attach_v.index.to_list()
+        left_id = [x for x in attach_id if x not in self.attach_id[-2] and x not in self.attach_id[-1]]
+
+        attach_boxes = str(left_id[-2]) + str(' + ')+ str(left_id[-1])
+        # nf0 = nf0.drop(index=attach_id[-1])
+        # nf0 = nf0.drop(index=attach_id[-2])
+        # print(nf1)
+        nf.loc[attach_boxes] = [0]*len(nf.columns)
+        nf.loc[attach_boxes,['Type_Attached_Boxes','Property_V','Property_G']] = 1 
+        self.left_v3 = left_id
+           
+    def df_stacking_v4(self,nf):
+        # print("\n[Middle]\n",nf)
+        attach_v = nf[nf['Property_V'] == 1]
+        attach_id = attach_v.index.to_list()
+        left_id = [x for x in attach_id if x not in self.left_v3[-2] and x not in self.left_v3[-1]]
+
+        attach_boxes = str(left_id[-2]) + str(' + ')+ str(left_id[-1])
+        # nf0 = nf0.drop(index=attach_id[-1])
+        # nf0 = nf0.drop(index=attach_id[-2])
+        # print(nf1)
+        nf.loc[attach_boxes] = [0]*len(nf.columns)
+        nf.loc[attach_boxes,['Type_Attached_Boxes','Property_V','Property_G']] = 1    
+
+
     def init_node_features(self):
         save_path = os.path.join(self.search_path,'node_features')
         createFolder(save_path)
 
         if 'stacking' in self.problem:
-            ID_col = list(range(9)) # 0~8
+            print("====[Stacking]====")
+            # ID_col = list(range(9)) # 0~8
+            ID_col = ['Robot_hand','Box1','Box2','Box3','Box4','Box5','Bowl1','Bowl2','Table']
             Type_bowl_col = [0,0,0,0,0,0,1,1,0]
             Type_box_col =  [0,1,1,1,1,1,0,0,0]
             Type_Table_col =[0,0,0,0,0,0,0,0,1]
@@ -79,15 +118,43 @@ class MakeDataset(Dataset):
                     for attached_box in node:
                         Property_v_col[int(attached_box)] = 1  
 
-            node_feature0_csv = pd.DataFrame({'ID': ID_col,'Type_Bowl': Type_bowl_col, 'Type_Box': Type_box_col, 'Type_Robot': Type_robot_col, \
+            nf0 = pd.DataFrame({'ID': ID_col,'Type_Bowl': Type_bowl_col, 'Type_Box': Type_box_col, 'Type_Robot': Type_robot_col, \
                                             'Type_Table': Type_Table_col, 'Property_V': Property_v_col, 'Property_G': Property_g_col})
+            nf0 = nf0.set_index("ID")
+            
+            if self.problem == 'stacking_v2':
+                self.df_stacking_v2(nf0)
+                self.output_csv_file(0, 'node_features', nf0)
+                print(nf0)
+                print("====[stacking_v2]====")
+            
+            elif self.problem == 'stacking_v3':
+                self.df_stacking_v2(nf0)
+                self.df_stacking_v3(nf0)
+                self.output_csv_file(0, 'node_features', nf0)
+                print(nf0)
+                print("====[stacking_v3]====")
+                
+            elif self.problem == 'stacking_v4':
+                self.df_stacking_v2(nf0)
+                self.df_stacking_v3(nf0)
+                self.df_stacking_v4(nf0)
+                self.output_csv_file(0, 'node_features', nf0)
+                print(nf0)
+                print("====[stacking_v3]====")
+            
+            else:
+                self.output_csv_file(0, 'node_features', nf0)
+                print(nf0)
+                print("====[stacking_5]====")
+            
+          
 
-            node_feature0_csv = node_feature0_csv.set_index("ID")
-            print(node_feature0_csv)
 
-            self.output_csv_file(0, 'node_features', node_feature0_csv)
+            
 
         elif 'mixing' in self.problem:
+            print("====[Mixing]====")
             ID_col = [0,1,2,3,4,5,'Bowl1','Bowl2','Bowl3','Bowl4','Bowl5','Bowl6','Bowl7', 'Table'] #0 ~ 13
             Type_bowl_col = [0,0,0,0,0,0,1,1,0,1,1,1,1,1]
             Type_box_col =  [0,1,1,1,1,1,0,0,0,0,0,0,0,0]
@@ -113,6 +180,8 @@ class MakeDataset(Dataset):
 
             self.output_csv_file(0, 'node_features', node_feature0_csv)
 
+        else:
+            print("else")
 
 
     def changed_node_feature(self, n):
@@ -144,90 +213,135 @@ class MakeDataset(Dataset):
         print(f'\n----{self.example}_nf{n}.csv file is saved----')
 
     def same_node_features(self, n):
-        # node_features_path = os.path.join(self.search_path,'node_features')
-        # file_list = natsort.natsorted(os.listdir(node_features_path))
-        # from_node_path = os.path.join(self.search_path, 'node_features', file_list[n-1])
-        # nf = pd.read_csv(from_node_path)
+
         nf = self.input_csv_file(n-1, 'node_features', None)
         nf = nf.set_index("ID")
         self.output_csv_file(n, 'node_features', nf)
-        # save_csv = os.path.join(nf_path, f'{self.example}_nf{n}.csv')
-        # nf.to_csv(save_csv) 
-        print(nf)
+       
+        # print(nf)
         print(f'\n----{self.example}_nf{n}.csv file is saved----')
 
 
 ###### Edge index ######
+    def save_ei(self, edge_index0_csv):
+        edge_index0_csv = edge_index0_csv.set_index("ID")
+        print("\n[ef0.csv]\n")
+        print(edge_index0_csv)
+
+        self.output_csv_file(0,'edge_index',edge_index0_csv)
+        print("\n----ei0.csv file is saved----")
 
 
     def init_edge_index(self):
-
         nf = self.input_csv_file(0, 'node_features', None)
         # print("node feature", nf)
         node_index = nf['ID'].to_list()
         # print("node_index",node_index)
-        attach_boxes = node_index[-1]
+        attach_boxes2 = node_index[-1]
+        attach_boxes1 = node_index[-2]
+        attach_boxes0 = node_index[-3]
 
         list_0 = [0 for i in range(len(node_index))]
         if 'stacking' in self.problem:
             if self.problem == 'stacking_5':
                 list_normal = [0, 0, 0, 0, 0, 0, 0, 0, 1]
                 list_table = [0, 1, 1, 1, 1, 1, 1, 1, 0]
+                edge_index0_csv = pd.DataFrame({'ID': node_index, 'Robot_hand': list_0, 'Box1':list_normal ,'Box2':list_normal,\
+                                                'Box3': list_normal, 'Box4': list_normal, 'Box5': list_normal, 'Bowl1':list_normal,\
+                                                'Bowl2':list_normal, 'Table':list_table})
+                self.save_ei(edge_index0_csv)
 
             elif self.problem == 'stacking_v2':
                 list_normal = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
-                list_table = [0, 1, 1, 1, 1, 1, 1, 1, 0, 0]
-               
-        # elif 'mixing' in self.problem:
-        #     list_normal = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0,0,0,0,0]
-        #     list_table = [0, 1, 1, 1, 1, 1, 1, 1, 0, 0,0,0,0,0]
+                list_tab = [0, 1, 1, 1, 1, 1, 1, 1, 0, 0]
+                edge_index0_csv = pd.DataFrame({'ID': node_index, 'Robot_hand': list_0, 'Box1':list_normal ,'Box2':list_normal,\
+                                                'Box3': list_normal, 'Box4': list_normal, 'Box5': list_normal, 'Bowl1':list_normal,\
+                                                'Bowl2':list_normal, 'Table':list_tab, f'{attach_boxes1}': list_0})   
+                self.save_ei(edge_index0_csv)
+                       
+            elif self.problem == 'stacking_v3':
+                list_normal = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
+                list_table =  [0, 1, 1, 1, 1, 1, 1, 1, 0 ,0, 0]
+                edge_index0_csv = pd.DataFrame({'ID': node_index, 'Robot_hand': list_0, 'Box1':list_normal ,'Box2':list_normal,\
+                                                'Box3': list_normal, 'Box4': list_normal, 'Box5': list_normal, 'Bowl1':list_normal,\
+                                                'Bowl2':list_normal, 'Table':list_table, \
+                                                f'{attach_boxes1}': list_0, f'{attach_boxes2}': list_0})  
+                self.save_ei(edge_index0_csv)
+   
+             
+            elif self.problem == 'stacking_v4':
+                list_normal = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+                list_table = [0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
+                # print(len(node_index), len(list_normal))
+                edge_index0_csv = pd.DataFrame({'ID': node_index, 'Robot_hand': list_0, 'Box1':list_normal ,'Box2':list_normal,\
+                                                'Box3': list_normal, 'Box4': list_normal, 'Box5': list_normal, 'Bowl1':list_normal,\
+                                                'Bowl2':list_normal, 'Table':list_table, f'{attach_boxes0}': list_0, f'{attach_boxes1}': list_0,\
+                                                f'{attach_boxes2}': list_0})     
+                self.save_ei(edge_index0_csv)
+                
+        elif 'mixing' in self.problem:
+            if self.problem == 'mixing_v2':
+                list_normal = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+                list_table =  [0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+                edge_index0_csv = pd.DataFrame({'ID': node_index, 'Robot_hand': list_0, 'Box1':list_normal ,'Box2':list_normal,\
+                                                'Box3': list_normal, 'Box4': list_normal, 'Box5': list_normal, 'Bowl1':list_normal,\
+                                                'Bowl2':list_normal, 'Table':list_table, f'{attach_boxes0}': list_0, f'{attach_boxes1}': list_0, \
+                                                f'{attach_boxes2}': list_0})  
+                self.save_ei(edge_index0_csv)
+            
+            elif self.problem == 'mixing_v3':
+                list_normal = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+                list_table =  [0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+                edge_index0_csv = pd.DataFrame({'ID': node_index, 'Robot_hand': list_0, 'Box1':list_normal ,'Box2':list_normal,\
+                                                'Box3': list_normal, 'Box4': list_normal, 'Box5': list_normal, 'Bowl1':list_normal,\
+                                                'Bowl2':list_normal, 'Table':list_table, f'{attach_boxes0}': list_0, f'{attach_boxes1}': list_0, \
+                                                f'{attach_boxes2}': list_0})    
+                self.save_ei(edge_index0_csv)
+            
+            elif self.problem == 'mixing_v4':
+                list_normal = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+                list_table =  [0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+                edge_index0_csv = pd.DataFrame({'ID': node_index, 'Robot_hand': list_0, 'Box1':list_normal ,'Box2':list_normal,\
+                                                'Box3': list_normal, 'Box4': list_normal, 'Box5': list_normal, 'Bowl1':list_normal,\
+                                                'Bowl2':list_normal, 'Table':list_table, f'{attach_boxes0}': list_0, f'{attach_boxes1}': list_0, \
+                                                f'{attach_boxes2}': list_0})     
+                self.save_ei(edge_index0_csv)           
+            else:
+                pass  
+        
 
-        edge_index0_csv = pd.DataFrame({'ID': node_index, '0': list_0, '1':list_normal ,'2':list_normal, '3': list_normal, '4': list_normal, \
-                                        '5': list_normal, '6':list_normal, '7':list_normal, '8':list_table, f'{attach_boxes}': list_0})
+        # edge_index0_csv = pd.DataFrame({'ID': node_index, 'Robot_hand': list_0, '1':list_normal ,'2':list_normal, '3': list_normal, '4': list_normal, \
+        #                                 '5': list_normal, '6':list_normal, '7':list_normal, '8':list_table, f'{attach_boxes}': list_0})
 
 
-        edge_index0_csv = edge_index0_csv.set_index("ID")
-        print(edge_index0_csv)
+        # edge_index0_csv = edge_index0_csv.set_index("ID")
+        # print("\n[ef0.csv]\n")
+        # print(edge_index0_csv)
 
-        self.output_csv_file(0,'edge_index',edge_index0_csv)
-        print("\n----ei0.csv file is saved----")
+        # self.output_csv_file(0,'edge_index',edge_index0_csv)
+        # print("\n----ei0.csv file is saved----")
         
 
     def pick_inx(self, n, obj1): # obj = ID number
         # Choose sample
-        # sample_inx_path = os.path.join(self.search_path,'edge_index')
-        # file_list = natsort.natsorted(os.listdir(sample_inx_path))
-
-        # # edge_path = os.path.join(self.search_path, 'test/edge_index',file_list[file_num])
-        # edge_path = os.path.join(self.search_path, 'edge_index',file_list[n-1])
-        # ef_csv = pd.read_csv(edge_path, index_col=0)
-
         ei_csv = self.input_csv_file(n-1, 'edge_index', 0)
-
-        # Data type) column :'object', index = 'int64'
         pick_csv = ei_csv
 
         # Preconditions
-        if obj1 != 0 and obj1 != 8: # Not robot-hand and table (The very first:robot-hand, The very last:table)
-            if pick_csv.loc[obj1,'0'] == 0 and pick_csv.loc[0,f'{obj1}'] == 0: # obj1 is has not relationship with robot-hand
+        if obj1 != 'Robot_hand' and obj1 != 'Table': 
+            if pick_csv.loc[obj1,'Robot_hand'] == 0 and pick_csv.loc['Robot_hand',obj1] == 0: # obj1 has no relationship with robot-hand
 
                 # Remove 'on' relation (Table) 
-                pick_csv.loc[obj1,'8'] = 0
-                pick_csv.loc[8,f'{obj1}'] = 0
+                pick_csv.loc[obj1,'Table'] = 0
+                pick_csv.loc['Table',obj1] = 0
 
                 # Add 'in-grasp' relation (Robot-hand)
-                pick_csv.loc[obj1,'0'] = 1
-                pick_csv.loc[0,f'{obj1}'] = 1
-                print(f'\n[ef_pick{str(obj1)}.csv] \n') 
+                pick_csv.loc[obj1,'Robot_hand'] = 1
+                pick_csv.loc['Robot_hand',obj1] = 1
+                print(f'\n[Pick[{str(obj1)}].csv] \n') 
 
                 # Save files
                 self.output_csv_file(n, 'edge_index', pick_csv)
-                # file_name = f'{self.example}_ei{n}.csv'
-                # save_path = os.path.join(self.search_path,'edge_index')
-                # createFolder(save_path)
-                # pick_csv.to_csv(os.path.join(save_path,file_name))
-                   
-                self.pick_csv = pick_csv
             
                 return pick_csv
             
@@ -240,34 +354,56 @@ class MakeDataset(Dataset):
         
     def place_inx(self, n, obj1, obj2): 
         place_csv = self.input_csv_file(n-1, 'edge_index', 0)
- 
-        
+        #### Simply attach object one by one 
         # Check obj1 and obj2 range
-        if obj1 != 0 and obj1 != 8 and obj2 != 0:
+        if obj1 != 'Robot_hand' and obj1 != 'Table' and obj2 != 'Robot_hand':
             # 'in-grasp' relation (Robot hand O -> X) , object are not equal
-            if place_csv.loc[obj1,'0'] == 1 and place_csv.loc[0,f'{obj1}'] == 1:
+            if place_csv.loc[obj1,'Robot_hand'] == 1 and place_csv.loc['Robot_hand',obj1] == 1:
                 # Check obj1 and obj2 are equal
                 if obj1 != obj2:
-
                     # Add 'on' relation with obj1 and obj2
-                    place_csv.loc[obj1,f'{obj2}'] = 1
-                    place_csv.loc[obj2,f'{obj1}'] = 1
+                    place_csv.loc[obj1,obj2] = 1
+                    place_csv.loc[obj2,obj1] = 1
 
                     # Remove 'in-grasp' relation (Robot hand)
-                    place_csv.loc[obj1,'0'] = 0
-                    place_csv.loc[0,f'{obj1}'] = 0
+                    place_csv.loc[obj1,'Robot_hand'] = 0
+                    place_csv.loc['Robot_hand',obj1] = 0
+                    
+                    if self.problem != 'stacking_5':
+                        nf = self.input_csv_file(n, 'node_features', None)
+                        attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()
+                        
+                        for attached_box in attached_boxes:
+                            if str(attached_box) == str(obj1) + str(' + ') +str(obj2):
+                                # attached_boxes끼리 모으기
+                                print("\n[Attached]",attached_box)
+
+                                place_csv.loc[attached_box, :] = 0
+                                place_csv.loc[:, f'{attached_box}'] = 0               
+                                place_csv.loc[attached_box, 'Table'] = 1
+                                place_csv.loc['Table', f'{attached_box}'] = 1
+
+                                # attached_boxes와 object 사이 관계 hierarchical하게  [Place_[Box3]_on_[Box4 + Box5].csv] 
+                                place_csv.loc[obj1,f'{attached_box}'] = 1
+                                place_csv.loc[attached_box, obj1] = 1
+                                place_csv.loc[obj2, f'{attached_box}'] = 1
+                                place_csv.loc[attached_box, obj2] = 1
+                                
+                                # split_attached_boxes와 object 사이 관계성 
+                                # split_attached_boxes = attached_box.split(" + ")
+                                # print("\n[Split attached boxes]", split_attached_boxes)
+
+                                # print(f"\n=={obj1} and {obj2} is attached==")
+                        else:
+                            pass
+                    else:
+                        pass
 
                     
-                    print(f'\n[ef_place_{str(obj1)}_on_{str(obj2)}.csv] \n') 
+                    print(f'\n[Place_[{str(obj1)}]_on_[{str(obj2)}].csv] \n') 
 
                     ### Save files
                     self.output_csv_file(n, 'edge_index', place_csv)
-                    # file_name = f'{self.example}_ei{n}.csv'
-                    # save_path = os.path.join(self.search_path,'edge_index')
-                    # createFolder(save_path)
-                    # place_csv.to_csv(os.path.join(save_path,file_name))
-
-                    self.place_csv = place_csv
 
                     return place_csv
                 
@@ -280,39 +416,39 @@ class MakeDataset(Dataset):
             
             
 
-    def attach_inx(self, n, obj1, obj2):
-        attach_csv = self.input_csv_file(n-1, 'edge_index', 0)
-        #### Simply attach object one by one 
-        nf = self.input_csv_file(n, 'node_features', None)
+    # def attach_inx(self, n, obj1, obj2):
+    #     attach_csv = self.input_csv_file(n-1, 'edge_index', 0)
+    #     #### Simply attach object one by one 
+    #     nf = self.input_csv_file(n, 'node_features', None)
 
-        attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()[0]
+    #     attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()[0]
 
         
-        if obj1 != 0 and obj1 != 8 and obj2 != 0 and obj2 != 8:
-            if attach_csv.loc[obj1,f'{obj2}'] == 1 and attach_csv.loc[obj2,f'{obj1}'] == 1:
-                # attach_csv = attach_csv.drop(index= obj1)
-                # attach_csv = attach_csv.drop(columns= f'{obj1}')
-                # attach_csv = attach_csv.drop(index= obj2)
-                # attach_csv = attach_csv.drop(columns= f'{obj2}')
+    #     if obj1 != 0 and obj1 != 8 and obj2 != 0 and obj2 != 8:
+    #         if attach_csv.loc[obj1,f'{obj2}'] == 1 and attach_csv.loc[obj2,f'{obj1}'] == 1:
+    #             # attach_csv = attach_csv.drop(index= obj1)
+    #             # attach_csv = attach_csv.drop(columns= f'{obj1}')
+    #             # attach_csv = attach_csv.drop(index= obj2)
+    #             # attach_csv = attach_csv.drop(columns= f'{obj2}')
 
                 
-                # attach box에 대한 행과 열 추가
-                # attach_csv.loc[attached_boxes] = 0
-                # attach_csv[f'{attached_boxes}'] = 0
+    #             # attach box에 대한 행과 열 추가
+    #             # attach_csv.loc[attached_boxes] = 0
+    #             # attach_csv[f'{attached_boxes}'] = 0
                 
-                # 8번 Table 위에 올려두기
-                attach_csv.loc[attached_boxes, '8'] = 1
-                attach_csv.loc[8, f'{attached_boxes}'] = 1
+    #             # 8번 Table 위에 올려두기
+    #             attach_csv.loc[attached_boxes, '8'] = 1
+    #             attach_csv.loc[8, f'{attached_boxes}'] = 1
 
-                ## Save files
-                self.output_csv_file(n, 'edge_index', attach_csv)
+    #             ## Save files
+    #             self.output_csv_file(n, 'edge_index', attach_csv)
      
-                return attach_csv
+    #             return attach_csv
         
-            else:
-                print("----Obj1 is not <on> Obj2----")
-        else:
-            print("----Cannot attach those object----")
+    #         else:
+    #             print("----Obj1 is not <on> Obj2----")
+    #     else:
+    #         print("----Cannot attach those object----")
         
 
 
@@ -357,30 +493,23 @@ class MakeDataset(Dataset):
 
 ###### Edge attr ######
 
-    def init_edge_attr(self,n):
+    def init_edge_attr(self,n,num):
         list_attr = []
         list_attr1 = []
 
         # Dataframe
-        # edge_inx_path = os.path.join(self.search_path, 'edge_index')
-        # file_list = natsort.natsorted(os.listdir(edge_inx_path))
-        # edge_path = os.path.join(self.search_path,'edge_index',file_list[0])
-        # ef = pd.read_csv(edge_path, index_col=0)
-    
+        nf = self.input_csv_file(n, 'node_features', None)
         
-
-        for i in range(9):
+        for i in range(num):   
+            # for i in range(9):
             ef = self.input_csv_file(i, 'edge_index', 0)
-            ID_list = list(map(int, ef.columns))
+            ID_list = list(map(str, ef.columns))
             for index in range(len(ID_list)):
                 for column in range(len(ID_list)):
                     if ef.iat[index, column] == 1:   
                         list_attr1.append((ID_list[index], ID_list[column]))
-                        
-
-                    # elif ef.iat[index, column] == 0 and ID_list[index] != ID_list[column]:
-                    #     list_attr0.append((ID_list[index], ID_list[column]))
-                    #     continue
+        
+        # 자체 중복 방지
         for v in list_attr1:
             if v not in list_attr:
                 list_attr.append(v)
@@ -391,7 +520,6 @@ class MakeDataset(Dataset):
         list_0 = [0 for i in range(len(list_attr))]
         # 연결된 숫자만 있는 것 끼리 묶는 걸로 - 이니셜의 경우 다 연결되어 있어서 의미가 없어보임. 그 외에도 별로 안 줄어들어서 의미가 없어 보임
 
-        # print("[list1]",list_attr1,'\n')
         # print(list_attr, "length", len(list_attr))
         edge_attr0_csv = pd.DataFrame({'ID': list_attr, 'rel_on_right':list_0, 'rel_on_left': list_0, \
                                         'rel_in_right':list_0, 'rel_in_left': list_0, 
@@ -399,14 +527,30 @@ class MakeDataset(Dataset):
                                         #'pos_x': list_0, 'pos_y': list_0, 'pos_z': list_0, \
                                         #'pos_roll':list_0, 'pos_pitch':list_0, 'pos_yaw':list_0})
         edge_attr0_csv = edge_attr0_csv.set_index("ID")
+        # print(edge_attr0_csv)
 
+        # print(list_attr1)
         for node_pair in list_attr1:
-            ret = [int(k) for k in re.split('[^0-9]', str(node_pair)) if k]
+            np0 = node_pair[0]
+            np1 = node_pair[1]
             if 'stacking' in self.problem:
-                if ret[0] == 8:
-                    edge_attr0_csv.loc[[node_pair], 'rel_on_left'] = 1
-                if ret[1] == 8:
-                    edge_attr0_csv.loc[[node_pair], 'rel_on_right'] = 1
+                if self.problem != 'stacking_5':
+                    attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()[0]
+                    if np0 == 'Table' and np1 == attached_boxes:
+                        edge_attr0_csv.loc[[node_pair], :] = 0
+                    if np1 == 'Table' and np0 == attached_boxes:
+                        edge_attr0_csv.loc[[node_pair], :] = 0
+                    if np0 == 'Table' and np1 != attached_boxes:
+                        edge_attr0_csv.loc[[node_pair], 'rel_on_left'] = 1
+                    if np1 == 'Table' and np0 != attached_boxes:
+                        edge_attr0_csv.loc[[node_pair], 'rel_on_right'] = 1
+                    
+                else:
+                    if np0 == 'Table':
+                        edge_attr0_csv.loc[[node_pair], 'rel_on_left'] = 1
+                    if np1 == 'Table':
+                        edge_attr0_csv.loc[[node_pair], 'rel_on_right'] = 1
+                    
             elif 'mixing' in self.problem:
                 pass
         
@@ -418,29 +562,48 @@ class MakeDataset(Dataset):
         print("\n[init_ea0.csv]\n",edge_attr0_csv)        
         print("\n----Edge attribute is saved----")
 
+    def list_changer(self, edge_attr_i):
+        new_list = []
+        for item in edge_attr_i:
+            new_item = tuple(map(lambda x: x.strip("' "), item.strip("()").split(",")))
+            new_list.append(new_item)
+        # print("nn",new_list)
+        return new_list
 
     ############################################# Make Edge attributes##########################################
     def pick_attr(self, n, obj1):
         edge_attr_csv = self.input_csv_file(n-1, 'edge_attr', 0)
-        edge_attr_index = edge_attr_csv.index.to_list()
-        # print("[list_attr]", edge_attr_index, len(edge_attr_index))
+        edge_attr_index = edge_attr_csv.index.to_list() 
 
-        for node_pair in edge_attr_index:
-            ret = [int(k) for k in re.split('[^0-9]', str(node_pair)) if k]
+        new_list = self.list_changer(edge_attr_index)
+        
+        # for i in edge_attr_index:
+        #     print(i, type(i))
+        #     edge_attr_csv.loc[i,:] =3
+        # print(edge_attr_csv)
+
+        for npr in new_list:           
+            np0 = npr[0]
+            np1 = npr[1]
+            npa = (np0, np1)
+            node_pair= "('{}', '{}')".format(*npa)
+
             if 'stacking' in self.problem:
-                if ret[0] == 0 and ret[1] == obj1:
+                # Delete previous relationship
+                if np0 == obj1 and np1 == 'Table':
+                    edge_attr_csv.loc[[node_pair], :] = 0
+                if np1 == obj1 and np0 == 'Table':
+                    edge_attr_csv.loc[[node_pair], :] = 0
+                # Grasp 'obj1 in robot-hand
+                if np0 == 'Robot_hand' and np1 == obj1:
                     edge_attr_csv.loc[[node_pair], :] = 0
                     edge_attr_csv.loc[[node_pair], 'rel_grasp'] = 1
-                if ret[1] == 0 and ret[0] == obj1:
+                if np1 == 'Robot_hand' and np0 == obj1:
                     edge_attr_csv.loc[[node_pair], :] = 0
                     edge_attr_csv.loc[[node_pair], 'rel_in_grasp'] = 1 
-                # 이전 관계 
-                if ret[0] == obj1 and ret[1] == 8:
-                    edge_attr_csv.loc[[node_pair], :] = 0
-                if ret[1] == obj1 and ret[0] == 8:
-                    edge_attr_csv.loc[[node_pair], :] = 0
+
  
-        print(f"\n[{self.example}_ea{n}.csv]\n",edge_attr_csv)
+        print(f"\n[Pick[{obj1}].csv]\n",edge_attr_csv)
 
         # # SAVE PATH (edge_attr)
         self.output_csv_file(n, 'edge_attr', edge_attr_csv)
@@ -450,26 +613,54 @@ class MakeDataset(Dataset):
     def place_attr(self, n, obj1, obj2):
         edge_attr_csv = self.input_csv_file(n-1,'edge_attr',0)
         edge_attr_index = edge_attr_csv.index.to_list()
-        # print("[list_attr]", edge_attr_index, len(edge_attr_index))
+       
+        new_list = self.list_changer(edge_attr_index)
 
-        for node_pair in edge_attr_index:
-            # Grasp로 잡힌 거 놓아주고
-            edge_attr_csv.loc[[node_pair], 'rel_grasp'] = 0
-            edge_attr_csv.loc[[node_pair], 'rel_in_grasp'] = 0
-            # print("node_pair",node_pair, type(node_pair))
-            # objects = (obj1, obj2)
-            # print("objects", str(objects), type(str(objects)))
-
+        for npr in new_list:           
+            np0 = npr[0]
+            np1 = npr[1]
+            npa = (np0, np1)
+            node_pair= "('{}', '{}')".format(*npa)
+            
             if 'stacking' in self.problem:
-                # object끼리 \\On\\ 관계
-                objects1 = (obj1, obj2)
-                objects2 = (obj2, obj1)
-                edge_attr_csv.loc[[str(objects1)], :] = 0
-                edge_attr_csv.loc[[str(objects2)], :] = 0
-                edge_attr_csv.loc[[str(objects1)], 'rel_on_right'] = 1
-                edge_attr_csv.loc[[str(objects2)], 'rel_on_left'] = 1
+            # Delete previous relationship
+                edge_attr_csv.loc[[node_pair], 'rel_grasp'] = 0
+                edge_attr_csv.loc[[node_pair], 'rel_in_grasp'] = 0
+                # Obj1 is on-relationship with Obj2
+                if np0 == obj1 and np1 == obj2:
+                    edge_attr_csv.loc[[node_pair], :] = 0
+                    edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1
+                if np0 == obj2 and np1 == obj1:
+                    edge_attr_csv.loc[[node_pair], :] = 0
+                    edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1   
+                    
+                ### normal이 아닐 때        # If there is an Property_V:
+                if self.problem != 'stacking_5':    
+                    nf = self.input_csv_file(n, 'node_features', None)             
+                    attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()[0]
+                    # print(attached_boxes)
+                   
+                    if str(attached_boxes) == str(obj1) + str( ' + ' )+ str(obj2):
+                        #attached_boxes.split(" + ")
+                        if np0 == obj1 and np1 == obj2:
+                            edge_attr_csv.loc[[node_pair], :] = 0
+                            edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1
+                        if np0 == obj2 and np1 == obj1:
+                            edge_attr_csv.loc[[node_pair], :] = 0
+                            edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1   
+                        if np0 == attached_boxes and np1 == 'Table':
+                            edge_attr_csv.loc[[node_pair], :] = 0
+                            edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1                    
+                        if np1 == attached_boxes and np0 == 'Table':
+                            edge_attr_csv.loc[[node_pair], :] = 0
+                            edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1 
+                  
+                    else:
+                        pass
+                else:
+                    pass
 
-        print(f"\n[{self.example}_ea{n}.csv]\n",edge_attr_csv)
+        print(f"\n[Place[{obj1}_on_{obj2}].csv]\n",edge_attr_csv)
 
         # SAVE PATH (edge_attr)
         self.output_csv_file(n, 'edge_attr', edge_attr_csv)
@@ -477,34 +668,34 @@ class MakeDataset(Dataset):
 
 
 
-    def attach_attr(self, n, obj1, obj2):
-        # Choose attr
-        edge_attr_csv = self.input_csv_file(n-1, 'edge_attr',0)
-        edge_attr_index = edge_attr_csv.index.to_list()
-        # print("[list_attr]", edge_attr_index, len(edge_attr_index))
+    # def attach_attr(self, n, obj1, obj2):
+    #     # Choose attr
+    #     edge_attr_csv = self.input_csv_file(n-1, 'edge_attr',0)
+    #     edge_attr_index = edge_attr_csv.index.to_list()
+    #     # print("[list_attr]", edge_attr_index, len(edge_attr_index))
 
-        for node_pair in edge_attr_index:
-            if 'stacking' in self.problem:
-                ret = [int(k) for k in re.split('[^0-9]', str(node_pair)) if k]
-                # New object도 포함해서 재정리
-                # if ret[0] == 8:
-                #     edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1
-                # if ret[1] == 8:
-                #     edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1
-                # object끼리 \\attach\\ 관계
-                edge_attr_csv.loc[[(obj1,obj2)], :] = 0
-                edge_attr_csv.loc[[(obj2,obj1)], :] = 0
-                edge_attr_csv.loc[[(obj1,obj2)], 'rel_attach'] = 1
-                edge_attr_csv.loc[[(obj2,obj1)], 'rel_attach'] = 1
+    #     for node_pair in edge_attr_index:
+    #         if 'stacking' in self.problem:
+    #             ret = [int(k) for k in re.split('[^0-9]', str(node_pair)) if k]
+    #             # New object도 포함해서 재정리
+    #             # if ret[0] == 8:
+    #             #     edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1
+    #             # if ret[1] == 8:
+    #             #     edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1
+    #             # object끼리 \\attach\\ 관계
+    #             edge_attr_csv.loc[[(obj1,obj2)], :] = 0
+    #             edge_attr_csv.loc[[(obj2,obj1)], :] = 0
+    #             edge_attr_csv.loc[[(obj1,obj2)], 'rel_attach'] = 1
+    #             edge_attr_csv.loc[[(obj2,obj1)], 'rel_attach'] = 1
            
-        print(f"\n[{self.example}_ea{n}.csv]\n",edge_attr_csv)
+    #     print(f"\n[{self.example}_ea{n}.csv]\n",edge_attr_csv)
 
 
-        ### SAVE PATH (edge_attr)
-        self.output_csv_file(n, 'edge_attr', edge_attr_csv)
-        # save_csv = os.path.join(edge_attr_path, f'{self.example}_ea{n}.csv')
-        # edge_attr_csv.to_csv(save_csv) 
-        print(f"\n----{self.example}_ea{n}.csv is saved----")
+    #     ### SAVE PATH (edge_attr)
+    #     self.output_csv_file(n, 'edge_attr', edge_attr_csv)
+    #     # save_csv = os.path.join(edge_attr_path, f'{self.example}_ea{n}.csv')
+    #     # edge_attr_csv.to_csv(save_csv) 
+    #     print(f"\n----{self.example}_ea{n}.csv is saved----")
 
 #################################################################################################
     # def make_edge_attr(self,i): 
@@ -562,45 +753,35 @@ class MakeDataset(Dataset):
     def make_graph(self, fig_num, pos):
         
         # Weight 부여되면 굵어지게
-  
         list_edge_attr = []
         list_edge_on = []
         list_edge_grasp = []
-        list_node_pair = []
+        # list_node_pair = []
 
-        # Make nodes
-        nodes = self.x.index.to_list()
+        # nf_csv = self.input_csv_file(fig_num, 'node_features', 0)
+        # nf_index = nf_csv.index.to_list()
+        # # print("[Nf index]", nf_index)
 
         # Connect edge
-        ea_inx = self.edge_attr.index.to_list()
-
-        print("ea_inx", ea_inx)
-        
-        for tar in ea_inx:
-            ret = [int(k) for k in re.split('[^0-9]', tar) if k]
-            # print(ret)
-            if ret != [0]:
-                list_node_pair.append(tuple(ret))
-            else:
-                pass
-        print("\n[List node pair]",list_node_pair)
-        
-        
+        edge_attr_csv = self.input_csv_file(fig_num, 'edge_attr', 0)
+        ea_index = edge_attr_csv.index.to_list()
+        ea_inx = self.list_changer(ea_index)
+        print("[EA index]", ea_inx)       
 
         # edge_attr의 column 데이터 list로 가져오기
-        col = self.edge_attr.columns.to_list()
-
-
+        col = edge_attr_csv.columns.to_list()
         # edge_attr file에서 'rel'이 들어간 문자열 정보 가져오기 
         ea_col = [col[i] for i in range(len(col)) if col[i].find('rel') == 0]    
 
-        print("\n[ea col]",ea_col)
+        # print("\n[ea col]",ea_col)
      
-        
-        #  Relation 보기 간편하게 바꿔줌 string -> tuple
-        for i in range(len(list_node_pair)):
+        for npr in ea_inx:           
+            np0 = npr[0]
+            np1 = npr[1]
+            npa = (np0, np1)
+            node_pair= "('{}', '{}')".format(*npa)
             for j in range(len(ea_col)):
-                if self.edge_attr.at[ea_inx[i], ea_col[j]] == 1:
+                if edge_attr_csv.at[node_pair, ea_col[j]] == 1:
                     if ea_col[j] == 'rel_on_right':
                         attr = ea_col[j].replace('rel_on_right', 'On')
                         list_edge_on.append(attr)
@@ -609,8 +790,10 @@ class MakeDataset(Dataset):
                         list_edge_on.append(attr)
                     elif ea_col[j] == 'rel_in_right':
                         attr = ea_col[j].replace('rel_in_right', 'In')
+                        list_edge_on.append(attr)
                     elif ea_col[j] == 'rel_in_left':
                         attr = ea_col[j].replace('rel_in_left', 'In')
+                        list_edge_on.append(attr)
                     elif ea_col[j] == 'rel_in_grasp':
                         attr = ea_col[j].replace('rel_in_grasp', 'Grasp')
                         list_edge_grasp.append(attr)
@@ -619,6 +802,13 @@ class MakeDataset(Dataset):
                         list_edge_grasp.append(attr)
                     elif ea_col[j] == 'rel_attach':
                         attr = ea_col[j].replace('rel_attach','Attach')
+                        list_edge_on.append(attr)
+                    elif ea_col[j] == 'rel_hierarchical_right':
+                        attr = ea_col[j].replace('rel_hierarchical_right','Hierarchy')
+                        list_edge_on.append(attr)
+                    elif ea_col[j] == 'rel_hierarchical_left':
+                        attr = ea_col[j].replace('rel_hierarchical_left','Hierarchy')
+                        list_edge_on.append(attr)
                     else:
                         print("----Re-check relations----")
                     list_edge_attr.append(attr)
@@ -657,26 +847,29 @@ class MakeDataset(Dataset):
     
         # Add nodes
         # g.add_nodes_from(nodes, images = images["Block1"])
-        g.add_node(0, images = images["Robot0"])
-        g.add_node(1, images = images["Block1"])
-        g.add_node(2, images = images["Block2"])
-        g.add_node(3, images = images["Block3"])
-        g.add_node(4, images = images["Block4"])
-        g.add_node(5, images = images["Block5"])
-        g.add_node(6, images = images["Bowl6"])
-        g.add_node(7, images = images["Bowl7"])
-        g.add_node(8, images = images["Table"])
+        g.add_node("Robot_hand", images = images["Robot0"])
+        g.add_node("Box1", images = images["Block1"])
+        g.add_node("Box2", images = images["Block2"])
+        g.add_node("Box3", images = images["Block3"])
+        g.add_node("Box4", images = images["Block4"])
+        g.add_node("Box5", images = images["Block5"])
+        g.add_node("Box6", images = images["Bowl6"])
+        g.add_node("Box7", images = images["Bowl7"])
+        g.add_node("Box8", images = images["Table"])
         
         
        
         # Add edges
         for i in range(len(list_edge_attr)):
-            g.add_edges_from([list_node_pair[i]], label = f'{list_edge_attr[i]}')
-         
+            for node_pair in ea_inx:
+                np0 = node_pair[0]
+                np1 = node_pair[1]
+                edges = [(np0, np1, {'label': list_edge_attr[i]})]
+                g.add_edges_from(edges)
+        #     g.add_edges_from(ea_inx[i], label = f'{list_edge_attr[i]}')
                
-                
-        edge_labels = nx.get_edge_attributes(g,'label')
-        print("\n[Edge labels]:",edge_labels)
+        # edge_labels = nx.get_edge_attributes(g,'label')
+        # print("\n[Edge labels]:",edge_labels)
       
 
         # POS 1 사진으로 node image 가져오는 것 가능
@@ -714,6 +907,10 @@ class MakeDataset(Dataset):
         ein = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "In"]
         eattach = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "Attach"]
 
+        # print(egrasp)
+        # print(eon)
+        # print(ein)
+        # print(eattach)
         
         # Draw edges from edge attributes
         # styles = ['filled', 'rounded', 'rounded, filled', 'dashed', 'dotted, bold']
@@ -723,12 +920,14 @@ class MakeDataset(Dataset):
         nx.draw_networkx_edges(G=g, pos=pos, edgelist=eattach, width=4, alpha=0.5, edge_color="r")
 
         # Draw edge labels from edge attributes
-        nx.draw_networkx_edge_labels(G= g, pos = pos, ax=ax, edge_labels = edge_labels, font_size = 10)
+        # nx.draw_networkx_edge_labels(G= g, pos = pos, ax=ax, edge_labels = edge_labels, font_size = 10)
       
-        
+        # print("[G nodes]", g.nodes)
                 
-        for n in g.nodes:
-            xf, yf = tr_figure(pos[n])
+        for i,n in enumerate(g.nodes):
+            # print("[i]",i,n)
+            # print("[pos]",pos)
+            xf, yf = tr_figure(pos[i])
             xa, ya = tr_axes((xf, yf))
 
             # get overlapped axes and plot icon
@@ -740,15 +939,15 @@ class MakeDataset(Dataset):
         
         # plt.figure(figsize=(10,8))  
         ### Check the graphs
-        # plt.show() # 
+        plt.show() # 
 
         ### Save the graph files
-        nx.draw(g) # 저장할 때
-        graph_path = os.path.join(self.FILEPATH, self.problem, 'graph_image')
-        createFolder(graph_path)
-        task_name = 'task' + str(fig_num) + '.png'
-        save_graph_path = os.path.join(graph_path, task_name)
-        plt.savefig(save_graph_path)
+        # nx.draw(g) # 저장할 때
+        # graph_path = os.path.join(self.FILEPATH, self.problem, 'graph_image')
+        # createFolder(graph_path)
+        # task_name = 'task' + str(fig_num) + '.png'
+        # save_graph_path = os.path.join(graph_path, task_name)
+        # plt.savefig(save_graph_path)
 
 
     ############################################## With velcro objects ################################################
@@ -1049,5 +1248,4 @@ mix_pos13 =  {
 
 
 mix_pos = [mix_pos0, mix_pos1,mix_pos2,mix_pos3,mix_pos4,mix_pos5,mix_pos6,mix_pos7,mix_pos8,mix_pos9,mix_pos10,mix_pos11, mix_pos12, mix_pos13]
-
 
