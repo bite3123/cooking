@@ -1,5 +1,5 @@
 from Train import *
-from Inference import *
+from Inference_Action import *
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
