@@ -13,7 +13,7 @@ import os
 def inference_action(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim, batch_size, lr, num_epoch, data_dir, show_result, infer_num=None, check_each = False):
     
     model_param = [data_dir, hidden_dim, num_epoch, batch_size, lr]
-    model_path = os.path.join(os.getcwd(), "result", "_".join(list(map(str, model_param))))
+    model_path = os.path.join(os.getcwd(), "result", "action","_".join(list(map(str, model_param))))
 
     if infer_num is not None:
         model_name = 'GP_model_{}.pt'.format(infer_num)
@@ -201,3 +201,154 @@ def inference_action(device, hidden_dim, num_action, node_feature_size, edge_fea
     print("------------------------")
     print("Target Object Result: {}/{} corrected".format(obj_num_acc, sum(act_num_total)))
     print("Target Object Acc: {:01.4f}".format(obj_num_acc/sum(act_num_total)))
+
+
+
+def inference_sequence(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim, batch_size, lr, num_epoch, data_dir, show_result, infer_num=None, check_each = False):
+    
+    model_param = [data_dir, hidden_dim, num_epoch, batch_size, lr]
+    model_path = os.path.join(os.getcwd(), "result", "action","_".join(list(map(str, model_param))))
+
+    if infer_num is not None:
+        model_name = 'GP_model_{}.pt'.format(infer_num)
+    else:
+        model_name = 'GP_model_best.pt'
+
+    saved_path = os.path.join(model_path, model_name)
+
+    saved_model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim)
+    saved_model.load_state_dict(torch.load(saved_path))
+    saved_model.to(device)
+
+    for param in saved_model.parameters():
+        param.requires_grad = False
+
+    data_test = ActionDataset(os.path.join(data_dir, 'action','test'))
+    data_test_loader = DataLoader(data_test, 1)
+    saved_model.eval()
+    for test_data in data_test_loader:
+        test_input, test_target, test_info = test_data
+        print("#########################################")
+        print("data info:")
+        print("demo type:", test_info['demo'])
+        print("order:", test_info['order'])
+        print("step:", test_info['step'].item())
+        print("--------------------------------")
+        state_edge_index = test_input['edge_index'].to(device)
+        #state_edge_attr = test_input['edge_attr'].to(device)
+
+        print("--------------------------------")
+        print("input state_edge_attr:\n")
+        print(test_input['edge_attr'][:,:7])
+        print("--------------------------------")
+        print("goal state_edge_attr:\n")
+        print(test_input['edge_attr'][:,7:])
+        #edge update
+        goal_planned = False
+        num_plan = 1
+        while goal_planned is False:
+            print("plan number", num_plan)
+            pred_action_prob, pred_object_prob = saved_model(test_input)
+            action_code = int(torch.argmax(pred_action_prob, dim=1).item())
+            object_code = int(torch.argmax(pred_object_prob, dim=1).item())
+
+            goal_edge_attr = test_input['edge_attr'][:,7:]
+            state_edge_attr = test_input['edge_attr'][:,:7]
+            print("--------------------------------")
+            print("updated state_edge_attr:\n")
+            state_edge_attr = graph_dynamics(state_edge_index, state_edge_attr, action_code, object_code)
+            print(state_edge_attr)
+            num_plan += 1
+
+            if torch.equal(state_edge_attr, goal_edge_attr):
+                goal_planned = True
+                print('plan success')
+                break
+            test_input['edge_attr'][:, :7] = state_edge_attr
+            print("plan one more step")
+            input()
+            if num_plan > 15:
+                break
+        if check_each:
+            input()
+        
+
+def graph_dynamics(state_edge_index, state_edge_attr, action_code, object_code):
+    zero_ea = torch.zeros(7)#edge_attr size
+    #edge_attr sturcture
+    #[rel_on_right,rel_on_left,rel_in_right,rel_in_left,rel_in_grasp,rel_grasp,rel_attach]
+    #print(action_code)
+    #print(object_code)
+
+    robot_hand_code = 0
+    table_code = 8
+    #in_hand_code = find_in_hand(state_edge_index, state_edge_attr)
+    #print(in_hand_code)
+    #print(state_edge_index)
+
+    #print(find_ea_index(state_edge_index, object_code, robot_hand_code))
+    #print(find_ea_index(state_edge_index, in_hand_code, robot_hand_code))
+    #print(find_ea_index(state_edge_index, object_code, table_code))
+    #Pick
+    if action_code == 0:
+        print("Pick execute")
+        print("target object:", object_code)
+        state_edge_attr = remove_on(state_edge_index, state_edge_attr, object_code)
+
+        if find_ea_index(state_edge_index, object_code, robot_hand_code) is not None:
+            state_edge_attr[find_ea_index(state_edge_index, object_code, robot_hand_code), 4] = torch.tensor([1], dtype=torch.float32)
+        if find_ea_index(state_edge_index, robot_hand_code, object_code) is not None:
+            state_edge_attr[find_ea_index(state_edge_index, robot_hand_code, object_code), 5] = torch.tensor([1], dtype=torch.float32)
+    #Place
+    elif action_code == 1:
+        print("Place execute")
+        print("target object:", object_code)
+        in_hand_code = find_in_hand(state_edge_index, state_edge_attr)
+
+        if find_ea_index(state_edge_index, in_hand_code, robot_hand_code) is not None:
+            state_edge_attr[find_ea_index(state_edge_index, in_hand_code, robot_hand_code), 4] = torch.tensor([0], dtype=torch.float32)
+        if find_ea_index(state_edge_index, robot_hand_code, in_hand_code) is not None:
+            state_edge_attr[find_ea_index(state_edge_index, robot_hand_code, in_hand_code), 5] = torch.tensor([0], dtype=torch.float32)
+        if find_ea_index(state_edge_index, in_hand_code, object_code) is not None:
+            state_edge_attr[find_ea_index(state_edge_index, in_hand_code, object_code), 0] = torch.tensor([1], dtype=torch.float32)
+        if find_ea_index(state_edge_index, object_code, in_hand_code) is not None:
+            state_edge_attr[find_ea_index(state_edge_index, object_code, in_hand_code), 1] = torch.tensor([1], dtype=torch.float32)
+    #Pour
+    elif action_code == 2:
+        pass
+    #Mix
+    elif action_code == 3:
+        pass
+
+    return state_edge_attr
+
+def find_ea_index(state_edge_index, src, dest):
+    for idx in range(state_edge_index.size(-1)):
+        pair = list(map(int, state_edge_index[:, idx].tolist()))
+        if pair == [src, dest]:
+            return idx
+    return None
+
+def remove_on(state_edge_index, state_edge_attr, obj):
+    max_obj_num = 13
+    for i in range(max_obj_num):
+        ea_idx = find_ea_index(state_edge_index, obj, i)
+        state_edge_attr[ea_idx, 0] = 0
+        ea_idx = find_ea_index(state_edge_index, i, obj)
+        state_edge_attr[ea_idx, 1] = 0
+    return state_edge_attr
+
+def find_in_hand(state_edge_index, state_edge_attr):
+    max_obj_num = 13
+    hand = 0
+    for i in range(max_obj_num):
+        ea_idx = find_ea_index(state_edge_index, hand, i)
+        if ea_idx is not None:
+            if int(state_edge_attr[ea_idx, 5].item()) == 1:
+                return i
+            
+        ea_idx = find_ea_index(state_edge_index, i, hand)
+        if ea_idx is not None:
+            if int(state_edge_attr[ea_idx, 4].item()) == 1:
+                return i
+    return None

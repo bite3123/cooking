@@ -167,7 +167,7 @@ class CollectGraph():
                                                     }
                         
                         graph_dict_data['input']['x'] = x
-                        graph_dict_data['input']['edge_index'] = state_edge_index
+                        graph_dict_data['input']['edge_index'] = cat_edge_index
                         graph_dict_data['input']['edge_attr'] = cat_edge_attr
 
                         graph_dict_data['target']['action'] = action_code
@@ -265,7 +265,7 @@ class CollectGraph():
                                                     }
                         
                         graph_dict_data['input']['x'] = x
-                        graph_dict_data['input']['edge_index'] = state_edge_index
+                        graph_dict_data['input']['edge_index'] = cat_edge_index
                         graph_dict_data['input']['edge_attr'] = cat_edge_attr
 
                         graph_dict_data['target']['action'] = action_code
@@ -361,7 +361,7 @@ class CollectGraph():
                                                     }
                         
                         graph_dict_data['input']['x'] = x
-                        graph_dict_data['input']['edge_index'] = state_edge_index
+                        graph_dict_data['input']['edge_index'] = cat_edge_index
                         graph_dict_data['input']['edge_attr'] = cat_edge_attr
 
                         graph_dict_data['target']['action'] = action_code
@@ -456,7 +456,7 @@ class CollectGraph():
                                                     }
                         
                         graph_dict_data['input']['x'] = x
-                        graph_dict_data['input']['edge_index'] = state_edge_index
+                        graph_dict_data['input']['edge_index'] = cat_edge_index
                         graph_dict_data['input']['edge_attr'] = cat_edge_attr
 
                         graph_dict_data['target']['action'] = action_code

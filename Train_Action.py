@@ -17,7 +17,7 @@ def train_action(device, hidden_dim, num_action, node_feature_size, edge_feature
     model.to(device)
 
     model_name = [data_dir, hidden_dim, num_epoch, batch_size, lr]
-    model_path = os.path.join(os.getcwd(), "result", "_".join(list(map(str, model_name))))
+    model_path = os.path.join(os.getcwd(), "result", "action","_".join(list(map(str, model_name))))
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 

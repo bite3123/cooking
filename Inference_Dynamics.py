@@ -155,7 +155,8 @@ def inference_dynamics_test(device, hidden_dim, num_action, node_feature_size, e
     data_test = DynamicsDataset(os.path.join(data_dir,'dynamics','test'))
     data_test_loader = DataLoader(data_test, 1)
 
-    loss_cos_sim = nn.CosineEmbeddingLoss().to(device)
+    #loss_cos_sim = nn.CosineEmbeddingLoss().to(device)
+    loss_bce = nn.BCEWithLogitsLoss().to(device)
 
     saved_dynamics_model.eval()
     saved_gnn_encoder.eval()
@@ -170,14 +171,24 @@ def inference_dynamics_test(device, hidden_dim, num_action, node_feature_size, e
         goal_edge_attr = test_goal['edge_attr'].to(device)
 
         sim_label = torch.ones(state_edge_attr.size(0), 1).squeeze().to(device)
-        L_dynamics = loss_cos_sim(state_edge_attr, goal_edge_attr, sim_label)
-
+        #L_dynamics = loss_cos_sim(state_edge_attr, goal_edge_attr, sim_label)
+        L_dynamics = loss_bce(state_edge_attr, goal_edge_attr)
         test_loss = L_dynamics.item()
 
 
         print("#########################################")
         print("L_dynamics:", L_dynamics.item())
         print("\n")
+
+        print("data info\n")
+        print("task:", test_info["demo"])
+        print("order:", test_info["order"])
+        print("step: ", test_info["step"])
+
+        print("\npredicted graph\n")
+        print(torch.trunc(torch.softmax(state_edge_attr,dim=-1)))
+        print("\ntarget graph\n")
+        print(goal_edge_attr)
 
         if check_each:
             input()

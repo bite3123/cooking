@@ -134,7 +134,7 @@ def train_dynamics_test(device, hidden_dim, num_action, node_feature_size, edge_
                                   {'params': gnn_encoder.parameters()}], lr = lr)
     
     loss_cos_sim = nn.CosineEmbeddingLoss().to(device)
-
+    loss_bce = nn.BCEWithLogitsLoss().to(device)
     for param in dynamics_model.parameters():
         param.requires_grad = True
 
@@ -166,7 +166,8 @@ def train_dynamics_test(device, hidden_dim, num_action, node_feature_size, edge_
 
             
             sim_label = torch.ones(state_edge_attr.size(0), 1).squeeze().to(device)
-            L_dynamics = loss_cos_sim(state_edge_attr, goal_edge_attr, sim_label)
+            #L_dynamics = loss_cos_sim(state_edge_attr, goal_edge_attr, sim_label)
+            L_dynamics = loss_bce(state_edge_attr, goal_edge_attr)
             #print(L_dynamics.item())
             L_dynamics.backward()
             optimizer.step()
@@ -201,7 +202,8 @@ def train_dynamics_test(device, hidden_dim, num_action, node_feature_size, edge_
                 val_goal_edge_attr = val_goal['edge_attr'].to(device)
 
                 val_sim_label = torch.ones(val_state_edge_attr.size(0), 1).squeeze().to(device)
-                val_L_dynamics = loss_cos_sim(val_state_edge_attr, val_goal_edge_attr, val_sim_label)
+                #val_L_dynamics = loss_cos_sim(val_state_edge_attr, val_goal_edge_attr, val_sim_label)
+                val_L_dynamics = loss_bce(val_state_edge_attr, val_goal_edge_attr)
 
                 val_running_loss += val_L_dynamics.item()
                 val_last_loss = val_running_loss/(i+1)
