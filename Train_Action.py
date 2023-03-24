@@ -13,8 +13,20 @@ import os
 
 def train_action(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim, batch_size, lr, num_epoch, data_dir):
     model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim)
-
+    model_action = []
+    model_node = []
+    model_gnn = []
+    for name, param in model.named_parameters():
+        if 'action_layers' in name:
+            model_action.append(param)
+        elif 'node_layers' in name:
+            model_node.append(param)
+        else:
+            model_gnn.append(param)
     model.to(device)
+    #model_action.to(device)
+    #model_node.to(device)
+    #model_gnn.to(device)
 
     model_name = [data_dir, hidden_dim, num_epoch, batch_size, lr]
     model_path = os.path.join(os.getcwd(), "result", "action","_".join(list(map(str, model_name))))
@@ -26,7 +38,14 @@ def train_action(device, hidden_dim, num_action, node_feature_size, edge_feature
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr = lr)
+    #optimizer = torch.optim.Adam(model.parameters(), lr = lr)
+    optimizer = torch.optim.Adam([{'params': model_action,
+                                   'lr': lr/100},
+                                  {'params': model_node,
+                                   'lr': lr*10},
+                                  {'params': model_gnn,
+                                   'lr': lr}])
+    
     #action_dist = [1200, 1200, 120]
     #action_weights = torch.tensor([action_dist[0]/sum(action_dist),action_dist[1]/sum(action_dist),action_dist[2]/sum(action_dist)])
     
@@ -36,7 +55,12 @@ def train_action(device, hidden_dim, num_action, node_feature_size, edge_feature
 
     for param in model.parameters():
         param.requires_grad = True
-
+    #for param in model_action.parameters():
+    #    param.requires_grad = True
+    #for param in model_node.parameters():
+    #    param.requires_grad = True
+    #for param in model_gnn.parameters():
+    #    param.requires_grad = True
     best_loss = 10000
     
     loss_data = {"epoch":[],
@@ -56,6 +80,9 @@ def train_action(device, hidden_dim, num_action, node_feature_size, edge_feature
         print("#############################")
         print("epoch number {}".format(epoch+1))
         model.train()
+        #model_action.train()
+        #model_node.train()
+        #model_gnn.train()
 
         running_loss = 0.0
         last_loss = 0.0

@@ -12,7 +12,7 @@ import natsort
 
 ## Dataset
 class ReadDataset():
-    def __init__(self, task, sort_edge=True, max_node_num = 13):
+    def __init__(self, task, sort_edge=True, max_node_num = 13, zero_edge_X=False):
         # Search path
         # task: stacking / mixing / ...
         self.search_path = os.path.join(os.getcwd(), 'seq_dataset','tasks', task)
@@ -21,6 +21,7 @@ class ReadDataset():
         self.task = task
         self.sort_edge = sort_edge
         self.max_node_num = max_node_num
+        self.zero_edge_X = zero_edge_X
 
     def input_csv_file(self, feature, order, i):    
         feature_path = os.path.join(self.search_path, order, feature)
@@ -59,8 +60,13 @@ class ReadDataset():
         #    ea_csv = ea_csv.iloc[:14, :] #drop zero-value edges
         if self.sort_edge:
             ea_csv = ea_csv.sort_index() #sort with ea_id "(src, dest)"
-
-        ea = torch.Tensor(ea_csv.values) # dataframe to tensor
+        if self.zero_edge_X:
+            ea = torch.Tensor(ea_csv.values) # dataframe to tensor
+            for idx, row in ea_csv.iterrows():
+                print(idx, row)
+                input()
+        else:
+            ea = torch.Tensor(ea_csv.values) # dataframe to tensor
         edge_attr = ea.to(dtype = torch.float32)
         
         # Read edge_index from index(ID) of edge_attr dataframe
@@ -98,10 +104,12 @@ class CollectGraph():
         collect_graph = []
 
         collect_graph.extend(self.collect_stacking5(data_type))
-        collect_graph.extend(self.collect_stackingv2(data_type))
-        collect_graph.extend(self.collect_stackingv3(data_type))
+        #collect_graph.extend(self.collect_stackingv2(data_type))
+        #collect_graph.extend(self.collect_stackingv3(data_type))
         #stacking_v4 제작중
         #collect_graph.extend(self.collect_stackingv4(data_type))
+        
+        #collect_graph.extend(self.collect_stacking5_custom(data_type))
         if auto_save:
             self.dataset_save(data_type, dataset_name, collect_graph)
 
@@ -131,22 +139,24 @@ class CollectGraph():
         
         return cat_ei, cat_ea
 
-    def collect_stacking5(self, data_type):
+    def collect_stacking5_custom(self, data_type):
         stacking5_graph = []
-        stack_5 = ReadDataset(task='stacking_5', sort_edge=False)
+        stack_5 = ReadDataset(task='stacking_5', sort_edge=False, zero_edge_X=True)
 
         stack_action = ['pick','place','pick','place','pick','place','pick','place']
         order_seq_dict = {'1_2_3_4_5':["Box4", "Box5", "Box3", "Box4", "Box2", "Box3", "Box1", "Box2"]}
-
         if data_type == 'action':
-            for order, stack_target_object in order_seq_dict.items():
-                goal_state_num = [8, 6, 4, 2]
-                for i_g in goal_state_num:
-                    goal_node_feature, node_id_to_idx = stack_5.node_features(order=order, i=i_g)
-                    goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i_g)
-
-                    for i in range(i_g):
+            for demo in os.listdir(os.path.join(stack_5.search_path, '1_2_3_4_5', 'pose')):
+            
+                for order, stack_target_object in order_seq_dict.items():
+                    for i in range(8):
+                        goal_node_feature, node_id_to_idx = stack_5.node_features(order=order, i=i+1)
+                        goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i+1)
                         x, _ = stack_5.node_features(order=order, i=i)
+                        pose_path = stack_5.input_csv_file('pose/'+demo, order, i)
+                        #pose_data = torch.Tensor(pd.read_csv(pose_path, index_col=0).values)
+                        pose_data = F.pad(torch.Tensor(np.loadtxt(pose_path, delimiter=',')), (0,0,0,stack_5.max_node_num-len(_)), value=0)
+                        x = torch.cat([x, pose_data], dim=1)
                         state_edge_index, state_edge_attr = stack_5.edge_features(order=order, i=i)
 
                         cat_edge_index, cat_edge_attr = self.concat_state_and_goal(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
@@ -175,9 +185,66 @@ class CollectGraph():
 
                         graph_dict_data['info']['order'] = order
                         graph_dict_data['info']['step'] = i
-                        graph_dict_data['info']['demo'] = "stacking_5"
+                        graph_dict_data['info']['demo'] = "stacking_5_custom"
 
                         stacking5_graph.append(graph_dict_data)
+
+            return stacking5_graph
+        
+    def collect_stacking5(self, data_type):
+        stacking5_graph = []
+        stack_5 = ReadDataset(task='stacking_5', sort_edge=False)
+
+        stack_action = ['pick','place','pick','place','pick','place','pick','place']
+        order_seq_dict = {'1_2_3_4_5':["Box4", "Box5", "Box3", "Box4", "Box2", "Box3", "Box1", "Box2"]}
+        if data_type == 'action':
+            for demo in os.listdir(os.path.join(stack_5.search_path, '1_2_3_4_5', 'pose')):
+            
+                for order, stack_target_object in order_seq_dict.items():
+                    goal_state_num = [8, 6, 4, 2]
+                    for i_g in goal_state_num:
+                        goal_node_feature, node_id_to_idx = stack_5.node_features(order=order, i=i_g)
+                        goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i_g)
+
+                        for i in range(i_g):
+                            x, _ = stack_5.node_features(order=order, i=i)
+                            pose_path = stack_5.input_csv_file('pose/'+demo, order, i)
+                            #pose_data = torch.Tensor(pd.read_csv(pose_path, index_col=0).values)
+                            pose_data = F.pad(torch.Tensor(np.loadtxt(pose_path, delimiter=',')), (0,0,0,stack_5.max_node_num-len(_)), value=0)
+                            x = torch.cat([x, pose_data], dim=1)
+                            state_edge_index, state_edge_attr = stack_5.edge_features(order=order, i=i)
+
+                            cat_edge_index, cat_edge_attr = self.concat_state_and_goal(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
+                            action_code = torch.Tensor(self.action_encoder[stack_action[i]])
+
+                            target_object_index = node_id_to_idx[stack_target_object[i]]
+                            target_object_score = np.zeros(stack_5.max_node_num, dtype=int)
+                            target_object_score[target_object_index] = 1
+                            target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
+                            graph_dict_data = {'input':{},
+                                            'target':{'action':[],
+                                                        'object':[]
+                                                        },
+                                            'info':{'order':str(),
+                                                    'step':int(),
+                                                    'demo':str()
+                                                    }
+                                                        }
+                            
+                            graph_dict_data['input']['x'] = x
+                            graph_dict_data['input']['edge_index'] = cat_edge_index
+                            graph_dict_data['input']['edge_attr'] = cat_edge_attr
+
+                            graph_dict_data['target']['action'] = action_code
+                            graph_dict_data['target']['object'] = target_object_score
+
+                            graph_dict_data['info']['order'] = order
+                            graph_dict_data['info']['step'] = i
+                            graph_dict_data['info']['demo'] = "stacking_5"
+                            graph_dict_data['info']['goal'] = i_g
+
+
+                            stacking5_graph.append(graph_dict_data)
 
             return stacking5_graph
         
@@ -225,7 +292,7 @@ class CollectGraph():
 
                     stacking5_graph.append(graph_dict_data)
             return stacking5_graph
-              
+                     
     def collect_stackingv2(self, data_type):
         stackingv2_graph = []
         stack_v2 = ReadDataset(task='stacking_v2', sort_edge=False)
@@ -561,11 +628,11 @@ class CollectGraph():
                 pickle.dump(g, outfile)
 
 stack_data = CollectGraph()
-action_data = stack_data.collect_graph(data_type='action', dataset_name='stacking_v4X_posX',auto_save=True)
+action_data = stack_data.collect_graph(data_type='action', dataset_name='stacking5_PoseO_zeroedgeX',auto_save=True)
 print("num of data:{}".format(len(action_data)))
-dynamics_data = stack_data.collect_graph(data_type='dynamics', dataset_name='stacking_v4X_posX',auto_save=True)
-print("num of data:{}".format(len(dynamics_data)))
 exit()
+dynamics_data = stack_data.collect_graph(data_type='dynamics', dataset_name='stacking5',auto_save=True)
+print("num of data:{}".format(len(dynamics_data)))
 #action data
 data = CollectGraph_Stack5()
 action_data = data.collect_graph(data_type='action', dataset_name='stacking5_posX',auto_save=True)
