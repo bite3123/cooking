@@ -535,15 +535,22 @@ class MakeDataset(Dataset):
             np1 = node_pair[1]
             if 'stacking' in self.problem:
                 if self.problem != 'stacking_5':
-                    attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()[0]
-                    if np0 == 'Table' and np1 == attached_boxes:
-                        edge_attr0_csv.loc[[node_pair], :] = 0
-                    if np1 == 'Table' and np0 == attached_boxes:
-                        edge_attr0_csv.loc[[node_pair], :] = 0
-                    if np0 == 'Table' and np1 != attached_boxes:
-                        edge_attr0_csv.loc[[node_pair], 'rel_on_left'] = 1
-                    if np1 == 'Table' and np0 != attached_boxes:
-                        edge_attr0_csv.loc[[node_pair], 'rel_on_right'] = 1
+                    attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()
+                    for attached_box in attached_boxes:     
+                        # print("[Attach boxes]", attached_box)   
+                        if np0 == 'Table':
+                            if np1 == attached_box:
+                                # print(type(attached_box), type(np1))
+                                edge_attr0_csv.loc[[node_pair], :] = 0
+                            else:   
+                                # print("else",node_pair)
+                                edge_attr0_csv.loc[[node_pair], 'rel_on_left'] = 1
+                        if np1 == 'Table':
+                            if np0 == attached_box:
+                                edge_attr0_csv.loc[[node_pair], :] = 0
+                            else:
+                                edge_attr0_csv.loc[[node_pair], 'rel_on_right'] = 1 
+                  
                     
                 else:
                     if np0 == 'Table':
@@ -637,30 +644,43 @@ class MakeDataset(Dataset):
                 ### normal이 아닐 때        # If there is an Property_V:
                 if self.problem != 'stacking_5':    
                     nf = self.input_csv_file(n, 'node_features', None)             
-                    attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()[0]
-                    # print(attached_boxes)
-                   
-                    if str(attached_boxes) == str(obj1) + str( ' + ' )+ str(obj2):
+                    attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()
+                    for attached_box in attached_boxes:
+                        if str(attached_box) == str(obj1) + str(' + ') +str(obj2):
                         #attached_boxes.split(" + ")
-                        if np0 == obj1 and np1 == obj2:
-                            edge_attr_csv.loc[[node_pair], :] = 0
-                            edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1
-                        if np0 == obj2 and np1 == obj1:
-                            edge_attr_csv.loc[[node_pair], :] = 0
-                            edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1   
-                        if np0 == attached_boxes and np1 == 'Table':
-                            edge_attr_csv.loc[[node_pair], :] = 0
-                            edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1                    
-                        if np1 == attached_boxes and np0 == 'Table':
-                            edge_attr_csv.loc[[node_pair], :] = 0
-                            edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1 
-                  
+                            if np0 == obj1 and np1 == obj2:
+                                edge_attr_csv.loc[[node_pair], :] = 0
+                                edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1
+                            if np0 == obj2 and np1 == obj1:
+                                edge_attr_csv.loc[[node_pair], :] = 0
+                                edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1   
+                            if np0 == attached_box and np1 == 'Table':
+                                edge_attr_csv.loc[[node_pair], :] = 0
+                                edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1                    
+                            if np1 == attached_box and np0 == 'Table':
+                                edge_attr_csv.loc[[node_pair], :] = 0
+                                edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1 
+                            # hierarchical
+                            # if np0 == attached_box and np1 == obj1:
+                            #     edge_attr_csv.loc[[node_pair], :] = 0
+                            #     edge_attr_csv.loc[[node_pair], 'rel_hierarchical_left'] = 1 
+                            # if np1 == attached_box and np0 == obj1:
+                            #     edge_attr_csv.loc[[node_pair], :] = 0
+                            #     edge_attr_csv.loc[[node_pair], 'rel_hierarchical_right'] = 1 
+                            # if np0 == attached_box and np1 == obj1:
+                            #     edge_attr_csv.loc[[node_pair], :] = 0
+                            #     edge_attr_csv.loc[[node_pair], 'rel_hierarchical_left'] = 1 
+                            # if np1 == attached_box and np0 == obj1:
+                            #     edge_attr_csv.loc[[node_pair], :] = 0
+                            #     edge_attr_csv.loc[[node_pair], 'rel_hierarchical_right'] = 1 
+                            
+                    
+                        else:
+                            pass
                     else:
                         pass
-                else:
-                    pass
 
-        print(f"\n[Place[{obj1}_on_{obj2}].csv]\n",edge_attr_csv)
+        print(f"\n[Place[{obj1}]_on_[{obj2}].csv]\n",edge_attr_csv)
 
         # SAVE PATH (edge_attr)
         self.output_csv_file(n, 'edge_attr', edge_attr_csv)
@@ -750,23 +770,227 @@ class MakeDataset(Dataset):
 
     ############################## Make graph ##################################
 
-    def make_graph(self, fig_num, pos):
+    # def make_graph(self, fig_num, pos):
+        
+    #     # Weight 부여되면 굵어지게
+    #     list_edge_attr = []
+    #     list_edge_on = []
+    #     list_edge_grasp = []
+    #     # list_node_pair = []
+
+    #     # nf_csv = self.input_csv_file(fig_num, 'node_features', 0)
+    #     # nf_index = nf_csv.index.to_list()
+    #     # # print("[Nf index]", nf_index)
+
+    #     # Connect edge
+    #     edge_attr_csv = self.input_csv_file(fig_num, 'edge_attr', 0)
+    #     ea_index = edge_attr_csv.index.to_list()
+    #     ea_inx = self.list_changer(ea_index)
+    #     print("[EA index]", ea_inx)       
+
+    #     # edge_attr의 column 데이터 list로 가져오기
+    #     col = edge_attr_csv.columns.to_list()
+    #     # edge_attr file에서 'rel'이 들어간 문자열 정보 가져오기 
+    #     ea_col = [col[i] for i in range(len(col)) if col[i].find('rel') == 0]    
+
+    #     # print("\n[ea col]",ea_col)
+     
+    #     for npr in ea_inx:           
+    #         np0 = npr[0]
+    #         np1 = npr[1]
+    #         npa = (np0, np1)
+    #         node_pair= "('{}', '{}')".format(*npa)
+    #         for j in range(len(ea_col)):
+    #             if edge_attr_csv.at[node_pair, ea_col[j]] == 1:
+    #                 if ea_col[j] == 'rel_on_right':
+    #                     attr = ea_col[j].replace('rel_on_right', 'On')
+    #                     list_edge_on.append(attr)
+    #                 elif ea_col[j] == 'rel_on_left':
+    #                     attr = ea_col[j].replace('rel_on_left', 'On')
+    #                     list_edge_on.append(attr)
+    #                 elif ea_col[j] == 'rel_in_right':
+    #                     attr = ea_col[j].replace('rel_in_right', 'In')
+    #                     list_edge_on.append(attr)
+    #                 elif ea_col[j] == 'rel_in_left':
+    #                     attr = ea_col[j].replace('rel_in_left', 'In')
+    #                     list_edge_on.append(attr)
+    #                 elif ea_col[j] == 'rel_in_grasp':
+    #                     attr = ea_col[j].replace('rel_in_grasp', 'Grasp')
+    #                     list_edge_grasp.append(attr)
+    #                 elif ea_col[j] == 'rel_grasp':
+    #                     attr = ea_col[j].replace('rel_grasp','Grasp')
+    #                     list_edge_grasp.append(attr)
+    #                 elif ea_col[j] == 'rel_attach':
+    #                     attr = ea_col[j].replace('rel_attach','Attach')
+    #                     list_edge_on.append(attr)
+    #                 elif ea_col[j] == 'rel_hierarchical_right':
+    #                     attr = ea_col[j].replace('rel_hierarchical_right','Hierarchy')
+    #                     list_edge_on.append(attr)
+    #                 elif ea_col[j] == 'rel_hierarchical_left':
+    #                     attr = ea_col[j].replace('rel_hierarchical_left','Hierarchy')
+    #                     list_edge_on.append(attr)
+    #                 else:
+    #                     print("----Re-check relations----")
+    #                 list_edge_attr.append(attr)
+    
+        
+    #     print("\n[List edge attribute]:",list_edge_attr)
+     
+
+    #     ################### Make graph ####################
+    #     import matplotlib.pyplot as plt
+    #     import networkx as nx
+    #     import PIL
+        
+    #     icon_path = os.path.join(self.FILEPATH, 'icons')
+        
+    #     # Image URLs for graph nodes
+    #     icons = {
+    #         "Robot0": f"{self.FILEPATH}/icons/robot_hand.jpeg",
+    #         "Block1": f"{self.FILEPATH}/icons/block1.jpg",
+    #         "Block2": f"{self.FILEPATH}/icons/block2.jpg",
+    #         "Block3": f"{self.FILEPATH}/icons/block3.jpg",
+    #         "Block4": f"{self.FILEPATH}/icons/block4.jpg",
+    #         "Block5": f"{self.FILEPATH}/icons/block5.jpg",
+    #         "Bowl6": f"{self.FILEPATH}/icons/bowl6.jpeg",
+    #         "Bowl7": f"{self.FILEPATH}/icons/bowl7.webp",
+    #         "Table": f"{self.FILEPATH}/icons/table_icon.jpg",
+    #     }
+
+    #     # Load images
+    #     images = {k: PIL.Image.open(fname) for k, fname in icons.items()}
+        
+        
+    #     # Generate graph
+    #     g = nx.Graph()
+        
+    
+    #     # Add nodes
+    #     # g.add_nodes_from(nodes, images = images["Block1"])
+    #     g.add_node("Robot_hand", images = images["Robot0"])
+    #     g.add_node("Box1", images = images["Block1"])
+    #     g.add_node("Box2", images = images["Block2"])
+    #     g.add_node("Box3", images = images["Block3"])
+    #     g.add_node("Box4", images = images["Block4"])
+    #     g.add_node("Box5", images = images["Block5"])
+    #     g.add_node("Box6", images = images["Bowl6"])
+    #     g.add_node("Box7", images = images["Bowl7"])
+    #     g.add_node("Box8", images = images["Table"])
+        
+        
+       
+    #     # Add edges
+    #     for i in range(len(list_edge_attr)):
+    #         for node_pair in ea_inx:
+    #             np0 = node_pair[0]
+    #             np1 = node_pair[1]
+    #             edges = [(np0, np1, {'label': list_edge_attr[i]})]
+    #             g.add_edges_from(edges)
+    #     #     g.add_edges_from(ea_inx[i], label = f'{list_edge_attr[i]}')
+               
+    #     # edge_labels = nx.get_edge_attributes(g,'label')
+    #     # print("\n[Edge labels]:",edge_labels)
+      
+
+    #     # POS 1 사진으로 node image 가져오는 것 가능
+        
+    #     # pos 지정 => x,y 좌표 array값으로 받아서 사용할 수 있음
+    #     # manually specify node position
+    #     # pos = nx.spring_layout(g)
+    #     # pos = nx.shell_layout(g)
+        
+    #     # check the position
+
+    #     # Get a repreducible layout and create figure
+    #     fig, ax = plt.subplots() 
+        
+    #     # Transform from data coordinates
+    #     tr_figure = ax.transData.transform
+    #     # Transform from display to figure coordinates
+    #     tr_axes = fig.transFigure.inverted().transform
+
+       
+         
+    #     # Select the size of the image
+    #     icon_size =  0.065 #(ax.get_xlim()[1] - ax.get_xlim()[0])*0.08 # 0.08
+    #     icon_center = icon_size / 2.0                          # 0.025
+      
+        
+    #     # Show title
+    #     title_font = {'fontsize':14, 'fontweight':'bold'}
+    #     plt.title("Present state", fontdict = title_font)  
+        
+        
+
+    #     egrasp = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "Grasp"]
+    #     eon = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "On"]
+    #     ein = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "In"]
+    #     eattach = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "Attach"]
+
+    #     # print(egrasp)
+    #     # print(eon)
+    #     # print(ein)
+    #     # print(eattach)
+        
+    #     # Draw edges from edge attributes
+    #     # styles = ['filled', 'rounded', 'rounded, filled', 'dashed', 'dotted, bold']
+    #     nx.draw_networkx_edges(G=g, pos=pos, edgelist=egrasp, width=6, alpha=0.5, edge_color="b", style= "dotted")
+    #     nx.draw_networkx_edges(G=g, pos=pos, edgelist=eon, width=3, alpha=0.5, edge_color="black")
+    #     nx.draw_networkx_edges(G=g, pos=pos, edgelist=ein, width=4, alpha=0.5, edge_color="r")
+    #     nx.draw_networkx_edges(G=g, pos=pos, edgelist=eattach, width=4, alpha=0.5, edge_color="r")
+
+    #     # Draw edge labels from edge attributes
+    #     # nx.draw_networkx_edge_labels(G= g, pos = pos, ax=ax, edge_labels = edge_labels, font_size = 10)
+      
+    #     # print("[G nodes]", g.nodes)
+                
+    #     for i,n in enumerate(g.nodes):
+    #         # print("[i]",i,n)
+    #         # print("[pos]",pos)
+    #         xf, yf = tr_figure(pos[i])
+    #         xa, ya = tr_axes((xf, yf))
+
+    #         # get overlapped axes and plot icon
+    #         a = plt.axes([xa-icon_center, ya-icon_center , icon_size, icon_size])
+    #         a.set_aspect('equal')
+    #         a.imshow(g.nodes[n]['images']) # print(g.nodes[n]) #dictionary에 'image' -> 'images'로 변경됨
+    #         a.axis("off")
+             
+        
+    #     # plt.figure(figsize=(10,8))  
+    #     ### Check the graphs
+    #     plt.show() # 
+
+    #     ### Save the graph files
+    #     # nx.draw(g) # 저장할 때
+    #     # graph_path = os.path.join(self.FILEPATH, self.problem, 'graph_image')
+    #     # createFolder(graph_path)
+    #     # task_name = 'task' + str(fig_num) + '.png'
+    #     # save_graph_path = os.path.join(graph_path, task_name)
+    #     # plt.savefig(save_graph_path)
+
+
+    ############################################## With velcro objects ################################################
+    def velcro_stack(self):
+        pass
+
+    def check_graph(self, fig_num, node1, node2):
         
         # Weight 부여되면 굵어지게
-        list_edge_attr = []
-        list_edge_on = []
-        list_edge_grasp = []
+
         # list_node_pair = []
 
-        # nf_csv = self.input_csv_file(fig_num, 'node_features', 0)
-        # nf_index = nf_csv.index.to_list()
-        # # print("[Nf index]", nf_index)
+        nf_csv = self.input_csv_file(fig_num, 'node_features', 0)
+        nf_index = nf_csv.index.to_list()
+        print("[Node features]",nf_index)
+        
+        # print("[Nf index]", nf_index)
 
         # Connect edge
         edge_attr_csv = self.input_csv_file(fig_num, 'edge_attr', 0)
         ea_index = edge_attr_csv.index.to_list()
         ea_inx = self.list_changer(ea_index)
-        print("[EA index]", ea_inx)       
+        # print("[EA index]", ea_inx)       
 
         # edge_attr의 column 데이터 list로 가져오기
         col = edge_attr_csv.columns.to_list()
@@ -775,186 +999,118 @@ class MakeDataset(Dataset):
 
         # print("\n[ea col]",ea_col)
      
-        for npr in ea_inx:           
-            np0 = npr[0]
-            np1 = npr[1]
-            npa = (np0, np1)
-            node_pair= "('{}', '{}')".format(*npa)
-            for j in range(len(ea_col)):
-                if edge_attr_csv.at[node_pair, ea_col[j]] == 1:
-                    if ea_col[j] == 'rel_on_right':
-                        attr = ea_col[j].replace('rel_on_right', 'On')
-                        list_edge_on.append(attr)
-                    elif ea_col[j] == 'rel_on_left':
-                        attr = ea_col[j].replace('rel_on_left', 'On')
-                        list_edge_on.append(attr)
-                    elif ea_col[j] == 'rel_in_right':
-                        attr = ea_col[j].replace('rel_in_right', 'In')
-                        list_edge_on.append(attr)
-                    elif ea_col[j] == 'rel_in_left':
-                        attr = ea_col[j].replace('rel_in_left', 'In')
-                        list_edge_on.append(attr)
-                    elif ea_col[j] == 'rel_in_grasp':
-                        attr = ea_col[j].replace('rel_in_grasp', 'Grasp')
-                        list_edge_grasp.append(attr)
-                    elif ea_col[j] == 'rel_grasp':
-                        attr = ea_col[j].replace('rel_grasp','Grasp')
-                        list_edge_grasp.append(attr)
-                    elif ea_col[j] == 'rel_attach':
-                        attr = ea_col[j].replace('rel_attach','Attach')
-                        list_edge_on.append(attr)
-                    elif ea_col[j] == 'rel_hierarchical_right':
-                        attr = ea_col[j].replace('rel_hierarchical_right','Hierarchy')
-                        list_edge_on.append(attr)
-                    elif ea_col[j] == 'rel_hierarchical_left':
-                        attr = ea_col[j].replace('rel_hierarchical_left','Hierarchy')
-                        list_edge_on.append(attr)
-                    else:
-                        print("----Re-check relations----")
-                    list_edge_attr.append(attr)
-    
-        
-        print("\n[List edge attribute]:",list_edge_attr)
-     
-
-        ################### Make graph ####################
         import matplotlib.pyplot as plt
         import networkx as nx
         import PIL
-        
-        icon_path = os.path.join(self.FILEPATH, 'icons')
-        
-        # Image URLs for graph nodes
-        icons = {
-            "Robot0": f"{self.FILEPATH}/icons/robot_hand.jpeg",
-            "Block1": f"{self.FILEPATH}/icons/block1.jpg",
-            "Block2": f"{self.FILEPATH}/icons/block2.jpg",
-            "Block3": f"{self.FILEPATH}/icons/block3.jpg",
-            "Block4": f"{self.FILEPATH}/icons/block4.jpg",
-            "Block5": f"{self.FILEPATH}/icons/block5.jpg",
-            "Bowl6": f"{self.FILEPATH}/icons/bowl6.jpeg",
-            "Bowl7": f"{self.FILEPATH}/icons/bowl7.webp",
-            "Table": f"{self.FILEPATH}/icons/table_icon.jpg",
-        }
-
-        # Load images
-        images = {k: PIL.Image.open(fname) for k, fname in icons.items()}
+        import collections
         
         
         # Generate graph
         g = nx.Graph()
         
-    
-        # Add nodes
-        # g.add_nodes_from(nodes, images = images["Block1"])
-        g.add_node("Robot_hand", images = images["Robot0"])
-        g.add_node("Box1", images = images["Block1"])
-        g.add_node("Box2", images = images["Block2"])
-        g.add_node("Box3", images = images["Block3"])
-        g.add_node("Box4", images = images["Block4"])
-        g.add_node("Box5", images = images["Block5"])
-        g.add_node("Box6", images = images["Bowl6"])
-        g.add_node("Box7", images = images["Bowl7"])
-        g.add_node("Box8", images = images["Table"])
-        
-        
-       
-        # Add edges
-        for i in range(len(list_edge_attr)):
-            for node_pair in ea_inx:
-                np0 = node_pair[0]
-                np1 = node_pair[1]
-                edges = [(np0, np1, {'label': list_edge_attr[i]})]
-                g.add_edges_from(edges)
-        #     g.add_edges_from(ea_inx[i], label = f'{list_edge_attr[i]}')
-               
-        # edge_labels = nx.get_edge_attributes(g,'label')
-        # print("\n[Edge labels]:",edge_labels)
-      
+        g.add_nodes_from(nf_index)
 
-        # POS 1 사진으로 node image 가져오는 것 가능
-        
-        # pos 지정 => x,y 좌표 array값으로 받아서 사용할 수 있음
+
+        for npr in ea_inx:           
+            np0 = npr[0]
+            np1 = npr[1]
+            npa = (np0, np1)
+            node_pair= "('{}', '{}')".format(*npa)
+            for rel in ea_col:
+                if edge_attr_csv.at[node_pair, rel] == 1:
+                    if rel == 'rel_on_right' or rel == 'rel_on_left':
+                        new_rel = rel.replace(rel, 'On')
+                    elif rel == 'rel_in_grasp' or rel == 'rel_grasp':
+                        new_rel = rel.replace(rel, 'Grasp')
+                    elif rel == 'rel_in_right' or rel == 'rel_in_left':
+                        new_rel = rel.replace(rel, 'In')
+                    elif rel == 'rel_attach':
+                        new_rel = rel.replace(rel, 'Attach')
+                    elif rel == 'rel_hierarchical_right' or rel == 'rel_hierarchical_left':
+                        new_rel = rel.replace(rel, 'Hierarchy')
+
+                    networkx_edges = [(np0, np1, {'label':new_rel})]
+                    g.add_edges_from(networkx_edges)
+
+                  
+    
+    
+     
+
+        ################### Make graph ####################
+
         # manually specify node position
         # pos = nx.spring_layout(g)
-        # pos = nx.shell_layout(g)
+        pos = nx.shell_layout(g)
         
-        # check the position
+        # # check the position
 
-        # Get a repreducible layout and create figure
-        fig, ax = plt.subplots() 
-        
-        # Transform from data coordinates
-        tr_figure = ax.transData.transform
-        # Transform from display to figure coordinates
-        tr_axes = fig.transFigure.inverted().transform
-
-       
-         
-        # Select the size of the image
-        icon_size =  0.065 #(ax.get_xlim()[1] - ax.get_xlim()[0])*0.08 # 0.08
-        icon_center = icon_size / 2.0                          # 0.025
-      
         
         # Show title
         title_font = {'fontsize':14, 'fontweight':'bold'}
         plt.title("Present state", fontdict = title_font)  
         
-        
+        print("[Graph info]", g)
+        print("[Edges]",g.edges, len(g.edges))
 
         egrasp = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "Grasp"]
         eon = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "On"]
         ein = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "In"]
         eattach = [(u, v) for (u, v, d) in g.edges(data=True) if d["label"] == "Attach"]
 
-        # print(egrasp)
-        # print(eon)
-        # print(ein)
-        # print(eattach)
+        print("[Grasp]", egrasp)
+        print("[On]", eon)
+        print("[In]", ein)
+        print("[Attach]",eattach)
+        
+
+
         
         # Draw edges from edge attributes
         # styles = ['filled', 'rounded', 'rounded, filled', 'dashed', 'dotted, bold']
-        nx.draw_networkx_edges(G=g, pos=pos, edgelist=egrasp, width=6, alpha=0.5, edge_color="b", style= "dotted")
-        nx.draw_networkx_edges(G=g, pos=pos, edgelist=eon, width=3, alpha=0.5, edge_color="black")
-        nx.draw_networkx_edges(G=g, pos=pos, edgelist=ein, width=4, alpha=0.5, edge_color="r")
-        nx.draw_networkx_edges(G=g, pos=pos, edgelist=eattach, width=4, alpha=0.5, edge_color="r")
+        # nx.draw_networkx(G=g, pos=pos, with_labels = True)
+        # print({node: node for node in g.nodes()})
+        # nx.draw_networkx_nodes(G=g, pos=pos, node_color="pink", node_size=400)
 
-        # Draw edge labels from edge attributes
-        # nx.draw_networkx_edge_labels(G= g, pos = pos, ax=ax, edge_labels = edge_labels, font_size = 10)
-      
-        # print("[G nodes]", g.nodes)
-                
-        for i,n in enumerate(g.nodes):
-            # print("[i]",i,n)
-            # print("[pos]",pos)
-            xf, yf = tr_figure(pos[i])
-            xa, ya = tr_axes((xf, yf))
+        val_map = {node1: 0.5, node2: 0.5}
+        values = [val_map.get(node, 0.25) for node in g.nodes()]
+        nx.draw_networkx_nodes(G=g, pos=pos, cmap= plt.get_cmap('rainbow'), node_color= values, node_size=400)
 
-            # get overlapped axes and plot icon
-            a = plt.axes([xa-icon_center, ya-icon_center , icon_size, icon_size])
-            a.set_aspect('equal')
-            a.imshow(g.nodes[n]['images']) # print(g.nodes[n]) #dictionary에 'image' -> 'images'로 변경됨
-            a.axis("off")
-             
         
+        nx.draw_networkx_labels(G=g, pos=pos, labels= {node: node for node in g.nodes()})
+        # nx.draw_networkx_labels(G=g, pos=pos, labels={n:lab for n,lab in labels.items() if n in pos})
+        # {n:lab for n,lab in labels.items() if n in pos}
+        nx.draw_networkx_edges(G=g, pos=pos, edgelist=egrasp, width=6, alpha=0.5, edge_color='black', style= "dotted")
+        nx.draw_networkx_edges(G=g, pos=pos, edgelist=eon, width=6, alpha=0.5, edge_color= 'black')#"#e31a1c")
+        nx.draw_networkx_edges(G=g, pos=pos, edgelist=ein, width=6, alpha=0.5, edge_color="r")
+        nx.draw_networkx_edges(G=g, pos=pos, edgelist=eattach, width=6, alpha=0.5, edge_color="b")
+
+        lgrasp = {pairs: 'Grasp' for pairs in egrasp}
+        lon = {pairs: 'On' for pairs in eon}
+        lin = {pairs: 'In' for pairs in ein}
+        lattach = {pairs: 'Attach' for pairs in eattach}
+        
+        # # Draw edge labels from edge attributes
+        nx.draw_networkx_edge_labels(G= g, pos = pos, edge_labels = lgrasp, font_size = 10)
+        nx.draw_networkx_edge_labels(G= g, pos = pos, edge_labels = lon, font_size = 10)
+        nx.draw_networkx_edge_labels(G= g, pos = pos, edge_labels = lin, font_size = 10)
+        nx.draw_networkx_edge_labels(G= g, pos = pos, edge_labels = lattach, font_size = 10)
+        plt.show()
+     
+            
+             
+        # print(g)
         # plt.figure(figsize=(10,8))  
         ### Check the graphs
-        plt.show() # 
-
-        ### Save the graph files
-        # nx.draw(g) # 저장할 때
-        # graph_path = os.path.join(self.FILEPATH, self.problem, 'graph_image')
-        # createFolder(graph_path)
-        # task_name = 'task' + str(fig_num) + '.png'
-        # save_graph_path = os.path.join(graph_path, task_name)
-        # plt.savefig(save_graph_path)
+        # plt.show() # 
 
 
-    ############################################## With velcro objects ################################################
-    def velcro_stack(self):
-        pass
-
-
+###################### Checking from networkx ############
+#     draw_networkx
+    # draw_networkx_nodes
+    # draw_networkx_edges
+    # draw_networkx_labels
+    # draw_networkx_edge_labels
 
 
 

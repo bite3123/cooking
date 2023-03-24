@@ -16,7 +16,7 @@ def edge_index(list_inx):
     for i, (n, obj1, obj2) in enumerate(list_inx):
         if i == 0:
             print(make_data.init_edge_index())
-        if obj2 == None:
+        elif obj2 == None:
             print(make_data.pick_inx(n=n, obj1=obj1))
         else:
             print(make_data.place_inx(n=n, obj1=obj1, obj2=obj2))
@@ -26,7 +26,7 @@ def edge_attr(list_attr,num):
     for i, (n, obj1, obj2) in enumerate(list_attr):
         if i == 0:
             print(make_data.init_edge_attr(n, num))
-        if obj2 == None:
+        elif obj2 == None:
             print(make_data.pick_attr(n=n, obj1=obj1)) 
         else:
             print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
@@ -61,74 +61,129 @@ class mixing_problem():
             else:
                 print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
 
+def make_node_colors(list):
+    if list[i][0] == 0:
+        node1 = 'Table'
+        node2 = None
+        
+    else:
+        node1 = list[i][1]
+        if list[i][2] != None:
+            node2 = list[i][2]
+        else:
+            node2 = 'Robot_hand'
+    return node1, node2
 
-
+def main(list, int):
+    node_features(int)
+    edge_index(list)
+    edge_attr(list,int)
+    for i in range(int):
+        print(f"====================================================[Task{i}]====================================================")
+        node1, node2 = make_node_colors(list)
+        make_data.check_graph(i, node1, node2)
 
 if __name__ == '__main__':
     # ################################################### [Stacking_5 / 1_2_3_4_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_5', example= '1_2_3_4_5')
 
     
-    # stack_normal = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4'), (5, 'Box2', None), \
+    # stack_normal = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4'), (5, 'Box2', None), \
     #                 (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
   
     # node_features(9)
     # edge_index(stack_normal)
     # edge_attr(stack_normal,9)
     # for i in range(9):
-    #     make_data.make_graph(fig_num=i, pos= stack_pos[i])
+    #     print(f"====================================================[Task{i}]====================================================")
+    #     node1, node2 = make_node_colors(stack_normal)
+    #     make_data.check_graph(i, node1, node2)
     
 
     
     ################################################## [Stacking_v2 / 1_2_3_45] ########################################################
-    make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
-    attach_45 = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), \
-                (5, 'Box2', None), (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
+    # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
+    # attach_45 = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), \
+    #             (5, 'Box2', None), (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
+    # num = 9
+    # at = attach_45
+    # node_features(num)
+    # edge_index(at)
+    # edge_attr(at,num)
+    # for i in range(num):
+    #     print(f"====================================================[Task{i}]====================================================")
+    #     node1, node2 = make_node_colors(at)
+    #     make_data.check_graph(i, node1, node2)
 
-    node_features(9)
-    edge_index(attach_45)
-    edge_attr(attach_45, 9)
     #  ################################################## [Stacking_v2 / 1_2_34_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_34_5')
-    # attach_34 = [(1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box3 + Box4', None), (4, 'Box3 + Box4', 'Box5'), \
+    # attach_34 = [(0, None, None), (1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box3 + Box4', None), (4, 'Box3 + Box4', 'Box5'), \
     #             (5, 'Box2', None), (6, 'Box2', 'Box3 + Box4'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
     
-    # node_features(9)
-    # edge_index(attach_34)
-    # edge_attr(attach_34, 9)
+    # num = 9
+    # at = attach_34
+    # node_features(num)
+    # edge_index(at)
+    # edge_attr(at,num)
+    # for i in range(num):
+    #     print(f"====================================================[Task{i}]====================================================")
+    #     node1, node2 = make_node_colors(at)
+    #     make_data.check_graph(i, node1, node2)
      ################################################## [Stacking_v2 / 1_23_4_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v2', example= '1_23_4_5')
-    # attach_23 = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box2', None), (4, 'Box2', 'Box3'), (5, 'Box2 + Box3', None),\
-    #             (6, 'Box2 + Box3', 4), (7, 'Box1', None), (8, 'Box1', 'Box2 + Box3')]
+    # attach_23 = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box2', None), (4, 'Box2', 'Box3'), (5, 'Box2 + Box3', None),\
+    #             (6, 'Box2 + Box3', 'Box4'), (7, 'Box1', None), (8, 'Box1', 'Box2 + Box3')]
     
-    # node_features(9)
-    # edge_index(attach_23)
-    # edge_attr(attach_23, 9)
+        
+
+    # num = 9
+    # at = attach_23
+    # node_features(num)
+    # edge_index(at)
+    # edge_attr(at,num)
+    # for i in range(num):
+    #     print(f"====================================================[Task{i}]====================================================")
+    #     node1, node2 = make_node_colors(at)
+    #     make_data.check_graph(i, node1, node2)
     #  ################################################## [Stacking_v2 / 12_3_4_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v2', example= '12_3_4_5')
-    # attach_12 = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4'),\
+    # attach_12 = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4'),\
     #             (5, 'Box1', None), (6, 'Box1', 'Box2'), (7, 'Box1 + Box2', None), (8, 'Box1 + Box2', 'Box3')]
     
-    # node_features(9)
-    # edge_index(attach_12)
-    # edge_attr(attach_12, 9)
+    # num = 9
+    # at = attach_12
+    # node_features(num)
+    # edge_index(at)
+    # edge_attr(at,num)
+    # for i in range(num):
+    #     print(f"====================================================[Task{i}]====================================================")
+    #     node1, node2 = make_node_colors(at)
+    #     make_data.check_graph(i, node1, node2)
     #  ################################################## [Stacking_v2 / 12_3_45] ########################################################
     # ##  2개씩 붙는 것도 있겠다
      
     #  ################################################## [Stacking_v3 / 1_2_345] ########################################################
-    # make_data = MakeDataset(problem = 'stacking_v3', example= '1_2_345')
-    # attach_345 = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'),\
-    #             (5, 'Box2', None), (6, 'Box2', 'Box3 + Box4 + Box5'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
+    make_data = MakeDataset(problem = 'stacking_v3', example= '1_2_345')
+    attach_345 = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'),\
+                (5, 'Box2', None), (6, 'Box2', 'Box3 + Box4 + Box5'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
     
+    # ('Box3', 'Box3 + Box4 + Box5') =>
     
-    # node_features(9)
-    # edge_index(attach_345)
-    # edge_attr(attach_345,9)
+    num = 9
+    at = attach_345
+    # node_features(num)
+    # edge_index(at)
+    # edge_attr(at,num)
+
+    # for i in range(num):
+    #     print(f"====================================================[Task{i}]====================================================")
+    #     node1, node2 = make_node_colors(at)
+    #     make_data.check_graph(i, node1, node2)
 
     # attach_345 
     #  ################################################## [Stacking_v3 / 1_234_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v3', example= '1_234_5')
-    # attach_345 = [(1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box2', None), (4, 'Box2', 'Box3 + Box4'),\
+    # attach_345 = [(0, None, None), (1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box2', None), (4, 'Box2', 'Box3 + Box4'),\
     #             (5, 'Box2 + Box3 + Box4', None), (6, 'Box2 + Box3 + Box4', 'Box5'), (7, 'Box1', None), (8, 'Box1', 'Box2 + Box3 + Box4')]
     
     
@@ -137,7 +192,7 @@ if __name__ == '__main__':
     # edge_attr(attach_345, 9)
     #  ################################################## [Stacking_v3 / 123_4_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v3', example= '123_4_5')
-    # attach_345 = [(1, 'Box4', None), (2, 'Box4', 5), (3, 'Box2', None), (4, 'Box2', 'Box3'),  (5, 'Box1', None), (6, 'Box1', 'Box2 + Box3'),\
+    # attach_345 = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 5), (3, 'Box2', None), (4, 'Box2', 'Box3'),  (5, 'Box1', None), (6, 'Box1', 'Box2 + Box3'),\
     #             (7, 'Box1 + Box2 + Box3', None), (8, 'Box1 + Box2 + Box3', 'Box4')]
     
     # node_features(9)
@@ -145,7 +200,7 @@ if __name__ == '__main__':
     # edge_attr(attach_345, 9)
     #  ################################################## [Stacking_v4 / 1_2345] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v4', example= '1_2345')
-    # attach_345 = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), (5, 'Box2', None), \
+    # attach_345 = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), (5, 'Box2', None), \
     #               (6, 'Box2', 'Box3 + Box4 + Box5'), (7, 'Box1', None), (8, 'Box1', 'Box2 + Box3 + Box4 + Box5')]
     
     # node_features(9)
@@ -153,7 +208,7 @@ if __name__ == '__main__':
     # edge_attr(attach_345,9)
     #  ################################################## [Stacking_v4 / 1234_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v4', example= '1234_5')
-    # attach_345 = [(1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box2', None), (4, 'Box2', 'Box3 + Box4'),\
+    # attach_345 = [(0, None, None), (1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box2', None), (4, 'Box2', 'Box3 + Box4'),\
     #               (5, 'Box1', None), (6, 'Box1', 'Box2 + Box3 + Box4'),  \
     #               (7, 'Box1 + Box2 + Box3 + Box4', None), (8, 'Box1 + Box2 + Box3 + Box4', 'Box5')]
     
@@ -164,7 +219,7 @@ if __name__ == '__main__':
     # ################################################### [Mixing_v2 / 1_2_3_45] ########################################################
     # make_data = MakeDataset(problem = 'mixing_v2', example= '1_2_3_45') 
     
-    # attach_45 = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), \
+    # attach_45 = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), \
     #             (5, 'Box2', None), (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
   
     # node_features(9)
