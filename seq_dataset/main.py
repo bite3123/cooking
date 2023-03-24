@@ -2,14 +2,14 @@ from seq_demo import *
 
 
 # def node_features(end, *attach_num):
-
+# class stacking_problem():
 def node_features(end):
     for i in range(0, end): 
         if i == 0:
             print(make_data.init_node_features())
         else:
             print(make_data.same_node_features(n=i))
-  
+
             
                 
 def edge_index(list_inx):
@@ -32,32 +32,62 @@ def edge_attr(list_attr,num):
             print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
 
 
+class mixing_problem():
+    def node_features(end):
+        for i in range(0, end): 
+            if i == 0:
+                print(make_data.init_node_features())
+            else:
+                print(make_data.same_node_features(n=i))
+    
+                
+                    
+    def edge_index(list_inx):
+        for i, (n, obj1, obj2) in enumerate(list_inx):
+            if i == 0:
+                print(make_data.init_edge_index())
+            if obj2 == None:
+                print(make_data.pick_inx(n=n, obj1=obj1))
+            else:
+                print(make_data.place_inx(n=n, obj1=obj1, obj2=obj2))
+
+
+    def edge_attr(list_attr,num):
+        for i, (n, obj1, obj2) in enumerate(list_attr):
+            if i == 0:
+                print(make_data.init_edge_attr(n, num))
+            if obj2 == None:
+                print(make_data.pick_attr(n=n, obj1=obj1)) 
+            else:
+                print(make_data.place_attr(n=n, obj1=obj1, obj2=obj2))
+
+
 
 
 if __name__ == '__main__':
     # ################################################### [Stacking_5 / 1_2_3_4_5] ########################################################
-    make_data = MakeDataset(problem = 'stacking_5', example= '1_2_3_4_5')
+    # make_data = MakeDataset(problem = 'stacking_5', example= '1_2_3_4_5')
 
     
-    stack_normal = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4'), (5, 'Box2', None), \
-                    (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
+    # stack_normal = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4'), (5, 'Box2', None), \
+    #                 (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
   
     # node_features(9)
     # edge_index(stack_normal)
     # edge_attr(stack_normal,9)
-    for i in range(9):
-        make_data.make_graph(fig_num=i, pos= stack_pos[i])
-    print("====[END]====")
+    # for i in range(9):
+    #     make_data.make_graph(fig_num=i, pos= stack_pos[i])
+    
 
     
     ################################################## [Stacking_v2 / 1_2_3_45] ########################################################
-    # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
-    # attach_45 = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), \
-    #             (5, 'Box2', None), (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
+    make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
+    attach_45 = [(1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), \
+                (5, 'Box2', None), (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
 
-    # node_features(9)
-    # edge_index(attach_45)
-    # edge_attr(attach_45, 9)
+    node_features(9)
+    edge_index(attach_45)
+    edge_attr(attach_45, 9)
     #  ################################################## [Stacking_v2 / 1_2_34_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_34_5')
     # attach_34 = [(1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box3 + Box4', None), (4, 'Box3 + Box4', 'Box5'), \
@@ -141,6 +171,6 @@ if __name__ == '__main__':
     # edge_index(attach_45)
     # edge_attr(attach_45, 9)
 
-
+print("====[END]====")
 
             
