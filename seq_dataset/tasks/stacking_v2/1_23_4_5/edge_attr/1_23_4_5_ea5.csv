@@ -13,12 +13,8 @@ ID,rel_on_right,rel_on_left,rel_in_right,rel_in_left,rel_in_grasp,rel_grasp,rel_
 "('Robot_hand', 'Box2')",0,0,0,0,0,0,0
 "('Box2', 'Robot_hand')",0,0,0,0,0,0,0
 "('Box2', 'Box3')",0,0,0,0,0,0,1
-"('Box2', 'Box2 + Box3')",0,0,0,0,0,0,0
 "('Box3', 'Box2')",0,0,0,0,0,0,1
-"('Box3', 'Box2 + Box3')",0,0,0,0,0,0,0
 "('Table', 'Box2 + Box3')",0,0,0,0,0,0,0
-"('Box2 + Box3', 'Box2')",0,0,0,0,0,0,0
-"('Box2 + Box3', 'Box3')",0,0,0,0,0,0,0
 "('Box2 + Box3', 'Table')",0,0,0,0,0,0,0
 "('Robot_hand', 'Box2 + Box3')",0,0,0,0,0,1,0
 "('Box2 + Box3', 'Robot_hand')",0,0,0,0,1,0,0
