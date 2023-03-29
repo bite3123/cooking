@@ -529,7 +529,7 @@ class MakeDataset(Dataset):
             for pour_obj in pour_objects:
                 if pour_obj != 'Robot_hand' and pour_obj != 'Table':
                     if pour_csv.at[obj1, pour_obj] == 1 and pour_csv.at[pour_obj, obj1] == 1:
-                        print("[[Pour obj]]", pour_obj)
+                        # print("[[Pour obj]]", pour_obj)
                         pour_csv.at[obj1, pour_obj] = 0
                         pour_csv.at[pour_obj, obj1] = 0
                         pour_csv.at[obj2, pour_obj] = 1
@@ -717,9 +717,9 @@ class MakeDataset(Dataset):
 
     # Place edge attribute
     def place_attr(self, n, obj1, obj2):
+
         edge_attr_csv = self.input_csv_file(n-1,'edge_attr',0)
         edge_attr_index = edge_attr_csv.index.to_list()
-       
         new_list = self.list_changer(edge_attr_index)
 
         for npr in new_list:           
@@ -740,26 +740,25 @@ class MakeDataset(Dataset):
                 edge_attr_csv.loc[[node_pair], :] = 0
                 edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1   
                     
-                ### normal이 아닐 때        # If there is an Property_V:
-                if self.problem in 'stacking'
-                if self.problem != 'stacking_5' and self.problem != 'mixing_5':    
-                    nf = self.input_csv_file(n, 'node_features', None)             
-                    attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()
-                    for attached_box in attached_boxes:
-                        if str(attached_box) == str(obj1) + str(' + ') +str(obj2):
-                            print("TT", attached_box)
-                            if np0 == obj1 and np1 == obj2:
-                                edge_attr_csv.loc[[node_pair], :] = 0
-                                edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1
-                            if np0 == obj2 and np1 == obj1:
-                                edge_attr_csv.loc[[node_pair], :] = 0
-                                edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1   
-                            if np0 == attached_box and np1 == 'Table':
-                                edge_attr_csv.loc[[node_pair], :] = 0
-                                edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1                    
-                            if np1 == attached_box and np0 == 'Table':
-                                edge_attr_csv.loc[[node_pair], :] = 0
-                                edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1 
+            ### normal이 아닐 때        # If there is an Property_V:
+            if 'v' in self.problem:
+                nf = self.input_csv_file(n, 'node_features', None)             
+                attached_boxes = nf[nf['Type_Attached_Boxes'] == 1]["ID"].to_list()
+                for attached_box in attached_boxes:
+                    if str(attached_box) == str(obj1) + str(' + ') +str(obj2):
+                        # print("NP0", np0)
+                        if np0 == obj1 and np1 == obj2:
+                            edge_attr_csv.loc[[node_pair], :] = 0
+                            edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1
+                        if np0 == obj2 and np1 == obj1:
+                            edge_attr_csv.loc[[node_pair], :] = 0
+                            edge_attr_csv.loc[[node_pair], 'rel_attach'] = 1   
+                        if np0 == attached_box and np1 == 'Table':
+                            edge_attr_csv.loc[[node_pair], :] = 0
+                            edge_attr_csv.loc[[node_pair], 'rel_on_right'] = 1                    
+                        if np1 == attached_box and np0 == 'Table':
+                            edge_attr_csv.loc[[node_pair], :] = 0
+                            edge_attr_csv.loc[[node_pair], 'rel_on_left'] = 1 
                             # hierarchical
                             # if np0 == attached_box and np1 == obj1:
                             #     edge_attr_csv.loc[[node_pair], :] = 0
@@ -779,7 +778,9 @@ class MakeDataset(Dataset):
                             pass
                     else:
                         pass
-            elif 'mixing' in self.problem:
+            # elif 'mixing' in self.problem:
+            #     pass
+            else:
                 pass
 
         print(f"\n[Place[{obj1}]_on_[{obj2}].csv]\n",edge_attr_csv)
@@ -787,6 +788,9 @@ class MakeDataset(Dataset):
         # SAVE PATH (edge_attr)
         self.output_csv_file(n, 'edge_attr', edge_attr_csv)
         print(f"\n----{self.example}_ea{n}.csv is saved----")
+
+
+
 
     # Pour edge attribute
     def pour_attr(self, n, obj1, obj2):
@@ -1147,7 +1151,7 @@ class MakeDataset(Dataset):
         # Show title
         plt.figure(figsize=(10,8))
         title_font = {'fontsize':14, 'fontweight':'bold'}
-        plt.title(f"Task{fig_num}", fontdict = title_font)  
+        plt.title(f"{self.example}_Task{fig_num}", fontdict = title_font)  
         
         print("[Graph info]", g)
 

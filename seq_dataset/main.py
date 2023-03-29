@@ -127,28 +127,31 @@ if __name__ == '__main__':
     # stack_main(stack)
     
     ################################################## [Stacking_v2 / 1_2_3_45] ########################################################
-    make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
-    stack = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), \
-                (5, 'Box2', None), (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
-    stack_main(stack)
+    # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_3_45')
+    # stack = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), \
+    #             (5, 'Box2', None), (6, 'Box2', 'Box3'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
+    # stack_main(stack)
 
     #  ################################################## [Stacking_v2 / 1_2_34_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v2', example= '1_2_34_5')
     # stack = [(0, None, None), (1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box3 + Box4', None), (4, 'Box3 + Box4', 'Box5'), \
     #             (5, 'Box2', None), (6, 'Box2', 'Box3 + Box4'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
     
+    # stack_main(stack)
   
      ################################################## [Stacking_v2 / 1_23_4_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v2', example= '1_23_4_5')
     # stack = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box2', None), (4, 'Box2', 'Box3'), (5, 'Box2 + Box3', None),\
     #             (6, 'Box2 + Box3', 'Box4'), (7, 'Box1', None), (8, 'Box1', 'Box2 + Box3')]
-    
+    # stack_main(stack)
 
    
     #  ################################################## [Stacking_v2 / 12_3_4_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v2', example= '12_3_4_5')
     # stack = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4'),\
     #             (5, 'Box1', None), (6, 'Box1', 'Box2'), (7, 'Box1 + Box2', None), (8, 'Box1 + Box2', 'Box3')]
+    # stack_main(stack)
+
 
     #  ################################################## [Stacking_v2 / 12_3_45] ########################################################
     # ##  2개씩 붙는 것도 있겠다
@@ -157,25 +160,25 @@ if __name__ == '__main__':
     # make_data = MakeDataset(problem = 'stacking_v3', example= '1_2_345')
     # stack = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'),\
     #             (5, 'Box2', None), (6, 'Box2', 'Box3 + Box4 + Box5'), (7, 'Box1', None), (8, 'Box1', 'Box2')]
-    
+    # stack_main(stack)
 
     #  ################################################## [Stacking_v3 / 1_234_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v3', example= '1_234_5')
     # stack = [(0, None, None), (1, 'Box3', None), (2, 'Box3', 'Box4'), (3, 'Box2', None), (4, 'Box2', 'Box3 + Box4'),\
     #             (5, 'Box2 + Box3 + Box4', None), (6, 'Box2 + Box3 + Box4', 'Box5'), (7, 'Box1', None), (8, 'Box1', 'Box2 + Box3 + Box4')]
-    
+    # stack_main(stack)
   
-    #  ################################################## [Stacking_v3 / 123_4_5] ########################################################
+    # #  ################################################## [Stacking_v3 / 123_4_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v3', example= '123_4_5')
-    # stack = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box2', None), (4, 'Box2', 'Box3'),  (5, 'Box1', None), (6, 'Box1', 'Box2 + Box3'),\
-    #             (7, 'Box1 + Box2 + Box3', None), (8, 'Box1 + Box2 + Box3', 'Box4')]
-    
+    # stack = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box2', None), (4, 'Box2', 'Box3'),  (5, 'Box1', None),\
+    #         (6, 'Box1', 'Box2 + Box3'), (7, 'Box1 + Box2 + Box3', None), (8, 'Box1 + Box2 + Box3', 'Box4')]
+    # stack_main(stack)
     
     #  ################################################## [Stacking_v4 / 1_2345] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v4', example= '1_2345')
     # stack = [(0, None, None), (1, 'Box4', None), (2, 'Box4', 'Box5'), (3, 'Box3', None), (4, 'Box3', 'Box4 + Box5'), (5, 'Box2', None), \
     #               (6, 'Box2', 'Box3 + Box4 + Box5'), (7, 'Box1', None), (8, 'Box1', 'Box2 + Box3 + Box4 + Box5')]
-    
+    # stack_main(stack)
   
     #  ################################################## [Stacking_v4 / 1234_5] ########################################################
     # make_data = MakeDataset(problem = 'stacking_v4', example= '1234_5')
@@ -185,23 +188,23 @@ if __name__ == '__main__':
     
     # stack_main(stack)
     
+
+#################################################################[MIX]##########################################################################
+
     # ################################################### [Mixing_5 / 1_2_3_4_5] ########################################################
     # make_data = MakeDataset(problem = 'mixing_5', example= '1_2_3_4_5') 
-    # # pick, pour, place, pick, pour, place, pick, pour, place,....
+    # ## Action sequence example) pick, pour, place, pick, pour, place, pick, pour, place,....
     
     # mix = [(0, None, None), (1, 'Bowl5', None), (2, 'Bowl5', 'Bowl6'), (3, 'Bowl5', 'Table'), (4, 'Bowl4', None), (5, 'Bowl4', 'Bowl6'), \
     #         (6, 'Bowl4', 'Table'), (7, 'Bowl3', None), (8, 'Bowl3', 'Bowl6'), (9, 'Bowl3', 'Table'), (10, 'Bowl2', None), (11, 'Bowl2', 'Bowl6'), \
     #         (12, 'Bowl2', 'Table'), (13, 'Bowl1', None), (14,'Bowl1','Bowl6'), (15, 'Bowl1', 'Table') , (16, 'Bowl6', 'Bowl7')]
     
-    # # mix_node_features(mix)
-    # # mix_edge_index(mix)
-    # # mix_edge_attr(mix, len(mix))
     # mix_main(mix)
 
 
     # ################################################### [Mixing_v2 / 1_2_3_45] ########################################################
     # make_data = MakeDataset(problem = 'mixing_v2', example= '1_2_3_45') 
-    
+    # # Action sequence example) pick, pour, place, pick, pour, place, mix, pick, pour, place,....
     # mix = [(0, None, None), (1, 'Bowl5', None), (2, 'Bowl5', 'Bowl6'), (3, 'Bowl5', 'Table'), (4, 'Bowl4', None), (5, 'Bowl4', 'Bowl6'), \
     #         (6, 'Bowl4', 'Table'), (7, 'Box4','Box5'), (8, 'Bowl3', None), (9, 'Bowl3', 'Bowl6'), (10, 'Bowl3', 'Table'), (11, 'Bowl2', None),\
     #        (12, 'Bowl2', 'Bowl6'), (13, 'Bowl2', 'Table'), (14, 'Bowl1', None), (15,'Bowl1','Bowl6'), (16, 'Bowl1', 'Table') , (17, 'Bowl6', 'Bowl7')]
@@ -226,7 +229,7 @@ if __name__ == '__main__':
 
     # mix_main(mix)
     
-    # ################################################### [Mixing_v2 / 12_3_4_5] ########################################################
+    # # ################################################### [Mixing_v2 / 12_3_4_5] ########################################################
     # make_data = MakeDataset(problem = 'mixing_v2', example= '12_3_4_5') 
     
     # mix = [(0, None, None), (1, 'Bowl2', None), (2, 'Bowl2', 'Bowl6'), (3, 'Bowl2', 'Table'), (4, 'Bowl1', None), (5, 'Bowl1', 'Bowl6'), \
@@ -236,21 +239,21 @@ if __name__ == '__main__':
     # mix_main(mix)
    
 
-    #  ################################################## [Mixing_v3 / 1_2_345] ########################################################
+    # #  ################################################## [Mixing_v3 / 1_2_345] ########################################################
     # make_data = MakeDataset(problem = 'mixing_v3', example= '1_2_345')
     # mix = [(0, None, None), (1, 'Bowl5', None), (2, 'Bowl5', 'Bowl6'), (3, 'Bowl5', 'Table'), (4, 'Bowl4', None), (5, 'Bowl4', 'Bowl6'), \
     #     (6, 'Bowl4', 'Table'), (7, 'Box4','Box5'), (8, 'Bowl3', None), (9, 'Bowl3', 'Bowl6'), (10, 'Bowl3', 'Table'), (11, 'Box3', 'Box4 + Box5'), \
     #     (12, 'Bowl2', None), (13, 'Bowl2', 'Bowl6'), (14, 'Bowl2', 'Table'), (15, 'Bowl1', None), (16,'Bowl1','Bowl6'), (17, 'Bowl1', 'Table') , (18, 'Bowl6', 'Bowl7')]
     # mix_main(mix)
     
-    #  ################################################## [Mixing_v3 / 1_234_5] ########################################################
+    # #  ################################################## [Mixing_v3 / 1_234_5] ########################################################
     # make_data = MakeDataset(problem = 'mixing_v3', example= '1_234_5')
     # mix = [(0, None, None), (1, 'Bowl3', None), (2, 'Bowl3', 'Bowl6'), (3, 'Bowl3', 'Table'), (4, 'Bowl4', None), (5, 'Bowl4', 'Bowl6'), \
     #     (6, 'Bowl4', 'Table'), (7, 'Box3','Box4'), (8, 'Bowl2', None), (9, 'Bowl2', 'Bowl6'), (10, 'Bowl2', 'Table'), (11, 'Box2', 'Box3 + Box4'), \
     #     (12, 'Bowl5', None), (13, 'Bowl5', 'Bowl6'), (14, 'Bowl5', 'Table'), (15, 'Bowl1', None), (16,'Bowl1','Bowl6'), (17, 'Bowl1', 'Table') , (18, 'Bowl6', 'Bowl7')]
     # mix_main(mix)
 
-     ################################################## [Mixing_v3 / 123_4_5] ########################################################
+    #  ################################################## [Mixing_v3 / 123_4_5] ########################################################
     # make_data = MakeDataset(problem = 'mixing_v3', example= '123_4_5')
     # mix = [(0, None, None), (1, 'Bowl2', None), (2, 'Bowl2', 'Bowl6'), (3, 'Bowl2', 'Table'), (4, 'Bowl3', None), (5, 'Bowl3', 'Bowl6'), \
     #     (6, 'Bowl3', 'Table'), (7, 'Box2','Box3'), (8, 'Bowl1', None), (9, 'Bowl1', 'Bowl6'), (10, 'Bowl1', 'Table'), (11, 'Box1', 'Box2 + Box3'), \
@@ -258,20 +261,20 @@ if __name__ == '__main__':
     # mix_main(mix)
 
 
-    #  ################################################## [Mixing_v4 / 1_2345] ########################################################
+    # #  ################################################## [Mixing_v4 / 1_2345] ########################################################
     # make_data = MakeDataset(problem = 'mixing_v4', example= '1_2345')
     # mix = [(0, None, None), (1, 'Bowl5', None), (2, 'Bowl5', 'Bowl6'), (3, 'Bowl5', 'Table'), (4, 'Bowl4', None), (5, 'Bowl4', 'Bowl6'), \
     #     (6, 'Bowl4', 'Table'), (7, 'Box4','Box5'), (8, 'Bowl3', None), (9, 'Bowl3', 'Bowl6'), (10, 'Bowl3', 'Table'), (11, 'Box3', 'Box4 + Box5'), \
     #     (12, 'Bowl2', None), (13, 'Bowl2', 'Bowl6'), (14, 'Bowl2', 'Table'), (15, 'Box2', 'Box3 + Box4 + Box5'), \
     #     (16, 'Bowl1', None), (17,'Bowl1','Bowl6'), (18, 'Bowl1', 'Table') , (19, 'Bowl6', 'Bowl7')]
     # mix_main(mix)
-     ################################################## [Mixing_v4 / 1_2345] ########################################################
-    # make_data = MakeDataset(problem = 'mixing_v4', example= '1234_5')
-    # mix = [(0, None, None), (1, 'Bowl4', None), (2, 'Bowl4', 'Bowl6'), (3, 'Bowl4', 'Table'), (4, 'Bowl3', None), (5, 'Bowl3', 'Bowl6'), \
-    #     (6, 'Bowl3', 'Table'), (7, 'Box3','Box4'), (8, 'Bowl2', None), (9, 'Bowl2', 'Bowl6'), (10, 'Bowl2', 'Table'), (11, 'Box2', 'Box3 + Box4'), \
-    #     (12, 'Bowl1', None), (13, 'Bowl1', 'Bowl6'), (14, 'Bowl1', 'Table'), (15, 'Box1', 'Box2 + Box3 + Box4'), \
-    #     (16, 'Bowl5', None), (17,'Bowl5','Bowl6'), (18, 'Bowl5', 'Table') , (19, 'Bowl6', 'Bowl7')]
-    # mix_main(mix)
+    #  ################################################## [Mixing_v4 / 1_2345] ########################################################
+    make_data = MakeDataset(problem = 'mixing_v4', example= '1234_5')
+    mix = [(0, None, None), (1, 'Bowl4', None), (2, 'Bowl4', 'Bowl6'), (3, 'Bowl4', 'Table'), (4, 'Bowl3', None), (5, 'Bowl3', 'Bowl6'), \
+        (6, 'Bowl3', 'Table'), (7, 'Box3','Box4'), (8, 'Bowl2', None), (9, 'Bowl2', 'Bowl6'), (10, 'Bowl2', 'Table'), (11, 'Box2', 'Box3 + Box4'), \
+        (12, 'Bowl1', None), (13, 'Bowl1', 'Bowl6'), (14, 'Bowl1', 'Table'), (15, 'Box1', 'Box2 + Box3 + Box4'), \
+        (16, 'Bowl5', None), (17,'Bowl5','Bowl6'), (18, 'Bowl5', 'Table') , (19, 'Bowl6', 'Bowl7')]
+    mix_main(mix)
 
 print("====[END]====")
 
