@@ -323,7 +323,8 @@ def inference_sequence(device, hidden_dim, num_action, node_feature_size, edge_f
         goal_planned = False
         num_plan = 1
         plan_list = []
-        res = recursive_plan(test_input, saved_model, plan_list, goal_reached=False, plan_step = 0)
+        res = recursive_plan(test_input, saved_model, plan_list, goal_reached=False)
+        print(res)
         '''
         while goal_planned is False:
             print("plan number", num_plan)
@@ -376,34 +377,46 @@ def graph_plan(test_input, saved_model, goal_reached, plan_step):
                 test_input['edge_attr'][:, :7] = updated_state
                 goal_reached = graph_plan(test_input, saved_model, goal_reached, plan_step)
 
-def recursive_plan(test_input, saved_model, plan_list, goal_reached, plan_step):
-    print("recursive")
-    plan_step += 1
+def recursive_plan(test_input, saved_model, plan_list, goal_reached):
+    print("recursive planning start")
     print("plan_step", len(plan_list))
-    print(plan_list)
-    if len(plan_list) > 10:
-        plan_step -= 1
-        return plan_list.pop()
-        
-    input()
-    idx = 0
-    pred_action_prob, pred_object_prob = saved_model(test_input)
-    act_obj_prob_table = torch.matmul(torch.transpose(pred_action_prob, 0, 1), pred_object_prob)
-    sorted_table, indices = torch.sort(act_obj_prob_table.view(-1), descending=True)
-    idx=0
-    while idx < (pred_action_prob.size(-1))*(pred_object_prob.size(-1)):
-        action_code, object_code = divmod(indices[idx].item(), pred_object_prob.size(-1))
-        updated_state = graph_dynamics(test_input['edge_index'], test_input['edge_attr'][:, :7], action_code, object_code)
-        if updated_state is None:
-            idx+=1
-            continue
-        else:
-            plan_list.append((action_code, object_code))
-            if torch.equal(updated_state, test_input['edge_attr'][:, 7:]):
-                return plan_list
-            else:
-                test_input['edge_attr'][:,:7] = updated_state
-                return recursive_plan(test_input, saved_model,plan_list, goal_reached, plan_step)
+    print("planned action list:", plan_list)
+    ##if len(plan_list) > 10:
+    #   print("maximum plan depth reached")
+    #    return plan_list.pop()
+    if torch.equal(test_input['edge_attr'][:, :7], test_input['edge_attr'][:, 7:]):
+        return plan_list
+    elif len(plan_list) > 10:
+        return False
+    else:
+        input()
+        pred_action_prob, pred_object_prob = saved_model(test_input)
+        act_obj_prob_table = torch.matmul(torch.transpose(pred_action_prob, 0, 1), pred_object_prob)
+        sorted_table, indices = torch.sort(act_obj_prob_table.view(-1), descending=True)
+        idx=0
+        while idx < (pred_action_prob.size(-1))*(pred_object_prob.size(-1)):
+            action_code, object_code = divmod(indices[idx].item(), pred_object_prob.size(-1))
+            updated_state = graph_dynamics(test_input['edge_index'], test_input['edge_attr'][:, :7], action_code, object_code)
+            if updated_state is None: #not feasible
+                print("not feasible action")
+                idx+=1
+                continue
+            else: #feasible
+                plan_list.append((action_code, object_code))
+                temp_test_input = test_input
+                temp_test_input['edge_attr'][:,:7] = updated_state
+                one_step_result =  recursive_plan(temp_test_input, saved_model,plan_list, goal_reached)
+                if one_step_result is False:
+                    plan_list.pop()
+                    idx += 1
+                    continue
+                else:
+                    test_input = temp_test_input
+                    return one_step_result
+                
+
+
+            
 
 
 def graph_dynamics(state_edge_index, state_edge_attr, action_code, object_code):

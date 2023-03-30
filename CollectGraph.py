@@ -104,10 +104,10 @@ class CollectGraph():
         collect_graph = []
 
         collect_graph.extend(self.collect_stacking5(data_type))
-        #collect_graph.extend(self.collect_stackingv2(data_type))
-        #collect_graph.extend(self.collect_stackingv3(data_type))
+        collect_graph.extend(self.collect_stackingv2(data_type))
+        collect_graph.extend(self.collect_stackingv3(data_type))
         #stacking_v4 제작중
-        #collect_graph.extend(self.collect_stackingv4(data_type))
+        collect_graph.extend(self.collect_stackingv4(data_type))
         
         #collect_graph.extend(self.collect_stacking5_custom(data_type))
         if auto_save:
@@ -189,6 +189,108 @@ class CollectGraph():
 
                         stacking5_graph.append(graph_dict_data)
 
+            return stacking5_graph
+        
+    def collect_stacking5_withPose(self, data_type):
+        stacking5_graph = []
+        stack_5 = ReadDataset(task='stacking_5', sort_edge=False)
+
+        stack_action = ['pick','place','pick','place','pick','place','pick','place']
+        order_seq_dict = {'1_2_3_4_5':["Box4", "Box5", "Box3", "Box4", "Box2", "Box3", "Box1", "Box2"]}
+        if data_type == 'action':
+            for demo in os.listdir(os.path.join(stack_5.search_path, '1_2_3_4_5', 'pose')):
+            
+                for order, stack_target_object in order_seq_dict.items():
+                    goal_state_num = [8, 6, 4, 2]
+                    for i_g in goal_state_num:
+                        goal_node_feature, node_id_to_idx = stack_5.node_features(order=order, i=i_g)
+                        goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i_g)
+
+                        for i in range(i_g):
+                            x, _ = stack_5.node_features(order=order, i=i)
+                            pose_path = stack_5.input_csv_file('pose/'+demo, order, i)
+                            #pose_data = torch.Tensor(pd.read_csv(pose_path, index_col=0).values)
+                            pose_data = F.pad(torch.Tensor(np.loadtxt(pose_path, delimiter=',')), (0,0,0,stack_5.max_node_num-len(_)), value=0)
+                            x = torch.cat([x, pose_data], dim=1)
+                            state_edge_index, state_edge_attr = stack_5.edge_features(order=order, i=i)
+
+                            cat_edge_index, cat_edge_attr = self.concat_state_and_goal(state_edge_index, state_edge_attr, goal_edge_index, goal_edge_attr)
+                            action_code = torch.Tensor(self.action_encoder[stack_action[i]])
+
+                            target_object_index = node_id_to_idx[stack_target_object[i]]
+                            target_object_score = np.zeros(stack_5.max_node_num, dtype=int)
+                            target_object_score[target_object_index] = 1
+                            target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
+                            graph_dict_data = {'input':{},
+                                            'target':{'action':[],
+                                                        'object':[]
+                                                        },
+                                            'info':{'order':str(),
+                                                    'step':int(),
+                                                    'demo':str()
+                                                    }
+                                                        }
+                            
+                            graph_dict_data['input']['x'] = x
+                            graph_dict_data['input']['edge_index'] = cat_edge_index
+                            graph_dict_data['input']['edge_attr'] = cat_edge_attr
+
+                            graph_dict_data['target']['action'] = action_code
+                            graph_dict_data['target']['object'] = target_object_score
+
+                            graph_dict_data['info']['order'] = order
+                            graph_dict_data['info']['step'] = i
+                            graph_dict_data['info']['demo'] = "stacking_5"
+                            graph_dict_data['info']['goal'] = i_g
+
+
+                            stacking5_graph.append(graph_dict_data)
+
+            return stacking5_graph
+        
+        elif data_type == 'dynamics':
+            for order, stack_target_object in order_seq_dict.items():
+                for i in range(8):
+                    x, _ = stack_5.node_features(order=order, i=i)
+                    state_edge_index, state_edge_attr = stack_5.edge_features(order=order, i=i)
+
+                    goal_node_feature, node_id_to_idx = stack_5.node_features(order=order, i=i+1)
+                    goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i+1)
+                    
+                    action_code = torch.Tensor(self.action_encoder[stack_action[i]])
+
+                    target_object_index = node_id_to_idx[stack_target_object[i]]
+                    target_object_score = np.zeros(stack_5.max_node_num, dtype=int)
+                    target_object_score[target_object_index] = 1
+                    target_object_score = torch.from_numpy(target_object_score).type(torch.FloatTensor)
+
+                    graph_dict_data = {'state':{},
+                                        'goal':{},
+                                        'target':{'action':[],
+                                                'object':[]
+                                                },
+                                        'info':{'order':str(),
+                                            'step':int(),
+                                            'demo':str()
+                                            }
+                                                }
+                    
+                    graph_dict_data['state']['x'] = x
+                    graph_dict_data['state']['edge_index'] = state_edge_index
+                    graph_dict_data['state']['edge_attr'] = state_edge_attr
+
+                    graph_dict_data['goal']['x'] = goal_node_feature
+                    graph_dict_data['goal']['edge_index'] = goal_edge_index
+                    graph_dict_data['goal']['edge_attr'] = goal_edge_attr
+
+                    graph_dict_data['target']['action'] = action_code
+                    graph_dict_data['target']['object'] = target_object_score
+
+                    graph_dict_data['info']['order'] = order
+                    graph_dict_data['info']['step'] = i
+                    graph_dict_data['info']['demo'] = "stacking_5"
+
+                    stacking5_graph.append(graph_dict_data)
             return stacking5_graph
         
     def collect_stacking5(self, data_type):
@@ -292,7 +394,7 @@ class CollectGraph():
 
                     stacking5_graph.append(graph_dict_data)
             return stacking5_graph
-                     
+                            
     def collect_stackingv2(self, data_type):
         stackingv2_graph = []
         stack_v2 = ReadDataset(task='stacking_v2', sort_edge=False)
