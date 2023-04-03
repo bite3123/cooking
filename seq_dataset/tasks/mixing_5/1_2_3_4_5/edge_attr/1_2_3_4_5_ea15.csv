@@ -63,3 +63,5 @@ ID,rel_on_right,rel_on_left,rel_in_right,rel_in_left,rel_in_grasp,rel_grasp,rel_
 "('Bowl7', 'Box3')",0,0,0,0,0,0,0
 "('Bowl7', 'Box4')",0,0,0,0,0,0,0
 "('Bowl7', 'Box5')",0,0,0,0,0,0,0
+"('Robot_hand', 'Bowl6')",0,0,0,0,0,0,0
+"('Bowl6', 'Robot_hand')",0,0,0,0,0,0,0

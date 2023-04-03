@@ -6,23 +6,26 @@ from Inference_Dynamics import *
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 num_action = 4 # [pick, place, pour, mix]
-node_feature_size = 13 #nf7+pose6
+node_feature_size = 12 #nf6+pose6
 edge_feature_size = 7 # 
 
 hidden_dim = 128
-num_epoch = 100
+num_epoch = 1001
 batch_size = 16
-lr = 1e-05
-data_dir = "stacking5_PoseO"
-show_result = True
+lr = 1e-06
+data_dir = "stacking5_mixing5_Pose_3"
+show_result = False
 infer_num = None
-check_each = False
+check_each = True
 global_dim = 16
 #action / object lr 다르게
 #train_action(device, hidden_dim, num_action, node_feature_size, edge_feature_size*2, global_dim, batch_size, lr, num_epoch, data_dir)
 #inference_action(device, hidden_dim, num_action, node_feature_size, edge_feature_size*2, global_dim, batch_size, lr, num_epoch, data_dir, show_result, infer_num, check_each)
-inference_sequence(device, hidden_dim, num_action, node_feature_size, edge_feature_size*2, global_dim, batch_size, lr, num_epoch, data_dir, show_result, infer_num, check_each)
+train_action_test2(device, hidden_dim, num_action, node_feature_size, edge_feature_size*2, global_dim, batch_size, lr, num_epoch, data_dir)
+inference_action_test2(device, hidden_dim, num_action, node_feature_size, edge_feature_size*2, global_dim, batch_size, lr, num_epoch, data_dir, show_result, infer_num, check_each)
+#inference_sequence(device, hidden_dim, num_action, node_feature_size, edge_feature_size*2, global_dim, batch_size, lr, num_epoch, data_dir, show_result, infer_num, check_each)
 #inference_sequence_custom(device, hidden_dim, num_action, node_feature_size, edge_feature_size*2, global_dim, batch_size, lr, num_epoch, data_dir, show_result, infer_num, check_each)
+
 #dynamics
 #train_dynamics(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim, batch_size, lr, num_epoch, data_dir)
 #inference_dynamics(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim, batch_size, lr, num_epoch, data_dir, show_result, infer_num, check_each)

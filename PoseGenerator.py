@@ -697,7 +697,7 @@ class MixingPoseGenerator():
         self.in_grasp = None
         self.current_scene = None
         self.obj_dict = self.init_obj_dict()
-        self.order_seq_dict = {'1_2_3_4_5':["Bowl5", "Bowl6", "Table", "Bowl4", "Bowl6", "Table", "Bowl3", "Bowl6", "Table", "Bowl2", "Bowl6", "Table", "Bowl1", "Bowl6", "Table", "Bowl6", "Bowl7"]}
+        self.order_seq_dict = {'1_2_3_4_5':["Bowl5", "Bowl6", "Table", "Bowl4", "Bowl6", "Table", "Bowl3", "Bowl6", "Table", "Bowl2", "Bowl6", "Table", "Bowl1", "Bowl6", "Table", "Bowl6", "Bowl7", "Table"]}
         self.pose_dir = None
 
     def random_translation(self):
@@ -725,7 +725,11 @@ class MixingPoseGenerator():
     def bowl_generation(self):
         bowl_left = np.array([0, 0.5, 0, 0, 0, 0])
         bowl_right = np.array([0, -0.5, 0, 0, 0, 0])
-        return np.stack([bowl_left, bowl_right], axis=0)
+        rand = np.random.rand(1).item()
+        if rand<=0.5:
+            return np.stack([bowl_left, bowl_right], axis=0)
+        else:
+            return np.stack([bowl_right, bowl_left], axis=0)
 
     def initial_scene(self):
         #coordinate center = table center point
@@ -737,7 +741,7 @@ class MixingPoseGenerator():
         side_bowl_poses = self.bowl_generation()
         table_pose = np.array([[0, 0, 0, 0, 0, 0]])
         zeros_pose = np.array([[0, 0, 0, 0, 0, 0]])
-        init_scene = np.concatenate([robot_hand, box_poses, bowl_poses, side_bowl_poses, table_pose, zeros_pose, zeros_pose, zeros_pose], axis=0)
+        init_scene = np.concatenate([robot_hand, box_poses, bowl_poses, side_bowl_poses, table_pose], axis=0)
         return init_scene
 
     def Pick(self,obj):
@@ -898,6 +902,11 @@ class MixingPoseGenerator():
         #save
         self.save_data(17)
 
+        #Place Bowl
+        self.current_scene = self.Place(self.obj_sequence[17])
+        #save
+        self.save_data(18)
+
 
     def pose_dir_init(self, order):
         #액션 다 짜고나서
@@ -917,5 +926,3 @@ class MixingPoseGenerator():
 MixPoseGenerator = MixingPoseGenerator()
 for i in range(100):
     MixPoseGenerator.pose_generate('1_2_3_4_5')
-
-

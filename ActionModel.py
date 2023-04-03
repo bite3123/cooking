@@ -101,6 +101,13 @@ class ActionModel(nn.Module):
                               NodeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
                               GlobalBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim))
         
+        self.gnn2 = MetaLayer(EdgeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              NodeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              GlobalBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim))
+        
+        self.gnn3 = MetaLayer(EdgeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              NodeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              GlobalBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim))   
         self.action_layers = nn.Sequential(
             nn.Linear(self.node_feature_size, self.hidden_dim),
             nn.BatchNorm1d(self.hidden_dim),
@@ -144,13 +151,37 @@ class ActionModel(nn.Module):
             nn.Linear(self.hidden_dim, self.hidden_dim),
             nn.BatchNorm1d(self.hidden_dim),
             nn.ReLU(),
-            nn.Linear(self.hidden_dim, 13),
+            nn.Linear(self.hidden_dim, 14),
             nn.Sigmoid()
             #nn.BatchNorm1d(self.num_action),
             #nn.ReLU(),
             #nn.Sigmoid(),
         )
-
+        self.node_layers_test_with_action = nn.Sequential(
+            nn.Linear(self.node_feature_size+self.num_action, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, 14),
+            nn.Sigmoid()
+            #nn.BatchNorm1d(self.num_action),
+            #nn.ReLU(),
+            #nn.Sigmoid(),
+        )
+        self.node_layers_test2 = nn.Sequential(
+            nn.Linear(self.node_feature_size, self.hidden_dim),
+            #nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            #nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, 2)
+            #nn.BatchNorm1d(self.num_action),
+            #nn.ReLU(),
+            #nn.Sigmoid(),
+        )
     def forward(self, input_data):
         x = input_data['x'].to(self.device)
         edge_index = input_data['edge_index'].to(self.device).type(torch.long)
@@ -159,6 +190,9 @@ class ActionModel(nn.Module):
         batch = input_data['batch'].to(self.device)
 
         x, edge_attr, u = self.gnn1(x=x, edge_index=edge_index, edge_attr=edge_attr, u=None, batch=batch)
+        #x, edge_attr, u = self.gnn2(x=x, edge_index=edge_index, edge_attr=edge_attr, u=None, batch=batch)
+        #x, edge_attr, u = self.gnn3(x=x, edge_index=edge_index, edge_attr=edge_attr, u=None, batch=batch)
+
         action_emb_list = []
         node_score_list = []
         batch_list = []
@@ -188,6 +222,10 @@ class ActionModel(nn.Module):
         '''
         x_emb = x.mean(axis=1)#아무연결없는노드 빼는법 있을까?
         action_prob = self.action_layers(x_emb)
-        node_score = self.node_layers_test(x_emb)
+        #node_score = self.node_layers_test(x_emb)
+        #node_score_emb = torch.concat((x_emb, action_prob), dim=-1)
+        #node_score = self.node_layers_test_with_action(node_score_emb)
+        node_score = self.node_layers_test2(x) #batch x max_node_num x 2
+        #print(node_score.shape)
 
         return action_prob, node_score
