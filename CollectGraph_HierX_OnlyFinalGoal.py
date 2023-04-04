@@ -100,7 +100,10 @@ class CollectGraph():
         self.action_encoder = {'pick':[1, 0, 0, 0], 'place':[0, 1, 0, 0], 'pour':[0, 0, 1, 0], 'mix':[0, 0, 0, 1]}        
         self.edge_attr_dim = 7
         
-    def collect_graph(self, data_type, auto_save=False, dataset_name=None):
+    def collect_graph(self, data_type, auto_save=False, dataset_name=None, OnlyFinalGoal=False, PoseNum=300):
+        self.OnlyFinalGoal = OnlyFinalGoal
+        self.PoseNum = PoseNum
+
         collect_graph = []
 
         collect_graph.extend(self.collect_mixing5(data_type))
@@ -145,9 +148,10 @@ class CollectGraph():
             for demo in os.listdir(os.path.join(stack_5.search_path, '1_2_3_4_5', 'pose')):
             
                 for order, stack_target_object in order_seq_dict.items():
-                    goal_state_num = [8, 6, 4, 2]
-                    #only final
-                    #goal_state_num = [8]
+                    if self.OnlyFinalGoal:
+                        goal_state_num = [8]
+                    else:
+                        goal_state_num = [8, 6, 4, 2]
                     for i_g in goal_state_num:
                         goal_node_feature, node_id_to_idx = stack_5.node_features(order=order, i=i_g)
                         goal_edge_index, goal_edge_attr = stack_5.edge_features(order=order, i=i_g)
@@ -191,7 +195,7 @@ class CollectGraph():
 
 
                             stacking5_graph.append(graph_dict_data)
-                if num_pos >=3:
+                if num_pos >=self.PoseNum:
                     break
                 num_pos+=1
 
@@ -253,9 +257,12 @@ class CollectGraph():
             for demo in os.listdir(os.path.join(mixing_5.search_path, '1_2_3_4_5', 'pose')):
             
                 for order, mixing_target_object in order_seq_dict.items():
-                    goal_state_num = [18, 15, 12, 9, 6, 3]
-                    #only final
-                    #goal_state_num = [18]
+
+                    if self.OnlyFinalGoal:
+                        goal_state_num = [18]
+                    else:
+                        goal_state_num = [18, 15, 12, 9, 6, 3]
+                        
                     for i_g in goal_state_num:
                         goal_node_feature, node_id_to_idx = mixing_5.node_features(order=order, i=i_g)
                         goal_edge_index, goal_edge_attr = mixing_5.edge_features(order=order, i=i_g)
@@ -297,7 +304,7 @@ class CollectGraph():
                             graph_dict_data['info']['demo'] = "mixing_5"
                             graph_dict_data['info']['goal'] = i_g
                             mixing5_graph.append(graph_dict_data)
-                if num_pos >=3:
+                if num_pos >=self.PoseNum:
                     break
                 num_pos+=1
             return mixing5_graph
@@ -390,6 +397,6 @@ class CollectGraph():
                 pickle.dump(g, outfile)
 
 stack_mix_5_data = CollectGraph()
-action_data = stack_mix_5_data.collect_graph(data_type='action', dataset_name='stacking5_mixing5_Pose_3',auto_save=True)
+action_data = stack_mix_5_data.collect_graph(data_type='action', dataset_name='stacking5_mixing5_Pose_10_OnlyFinalGoal',auto_save=True, OnlyFinalGoal=True, PoseNum=10)
 print("num of data:{}".format(len(action_data)))
 

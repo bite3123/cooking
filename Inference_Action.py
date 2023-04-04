@@ -303,7 +303,7 @@ def inference_action_test2(device, hidden_dim, num_action, node_feature_size, ed
 
     saved_path = os.path.join(model_path, model_name)
 
-    saved_model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim)
+    saved_model = ActionModel_test2(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim)
     saved_model.load_state_dict(torch.load(saved_path))
     saved_model.to(device)
 

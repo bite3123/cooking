@@ -222,6 +222,149 @@ class ActionModel(nn.Module):
         '''
         x_emb = x.mean(axis=1)#아무연결없는노드 빼는법 있을까?
         action_prob = self.action_layers(x_emb)
+        node_score = self.node_layers_test(x_emb)
+        #node_score_emb = torch.concat((x_emb, action_prob), dim=-1)
+        #node_score = self.node_layers_test_with_action(node_score_emb)
+        #node_score = self.node_layers_test2(x) #batch x max_node_num x 2
+        #print(node_score.shape)
+
+        return action_prob, node_score
+
+class ActionModel_test2(nn.Module):
+    def __init__(self, device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim):
+        super(ActionModel_test2, self).__init__()
+        self.device = device
+        self.hidden_dim = hidden_dim
+        self.num_action = num_action
+        self.node_feature_size = node_feature_size
+        self.edge_feature_size = edge_feature_size
+        self.global_dim = global_dim
+        
+        self.gnn1 = MetaLayer(EdgeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              NodeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              GlobalBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim))
+        
+        self.gnn2 = MetaLayer(EdgeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              NodeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              GlobalBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim))
+        
+        self.gnn3 = MetaLayer(EdgeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              NodeBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim),
+                              GlobalBlock(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim))   
+        self.action_layers = nn.Sequential(
+            nn.Linear(self.node_feature_size, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.num_action),
+            nn.Sigmoid()
+            #nn.BatchNorm1d(self.num_action),
+            #nn.ReLU(),
+            #nn.Sigmoid(),
+        )
+
+        self.node_layers = nn.Sequential(
+            nn.Linear(self.node_feature_size, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, 1),
+            nn.Sigmoid()
+        )
+
+        self.x_embedding= nn.Sequential(
+            nn.Linear(self.node_feature_size, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.node_feature_size),
+            nn.ReLU()
+            #nn.BatchNorm1d(self.num_action),
+            #nn.ReLU(),
+            #nn.Sigmoid(),
+        )
+        self.node_layers_test = nn.Sequential(
+            nn.Linear(self.node_feature_size, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, 14),
+            nn.Sigmoid()
+            #nn.BatchNorm1d(self.num_action),
+            #nn.ReLU(),
+            #nn.Sigmoid(),
+        )
+        self.node_layers_test_with_action = nn.Sequential(
+            nn.Linear(self.node_feature_size+self.num_action, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, 14),
+            nn.Sigmoid()
+            #nn.BatchNorm1d(self.num_action),
+            #nn.ReLU(),
+            #nn.Sigmoid(),
+        )
+        self.node_layers_test2 = nn.Sequential(
+            nn.Linear(self.node_feature_size, self.hidden_dim),
+            #nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            #nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, 2)
+            #nn.BatchNorm1d(self.num_action),
+            #nn.ReLU(),
+            #nn.Sigmoid(),
+        )
+    def forward(self, input_data):
+        x = input_data['x'].to(self.device)
+        edge_index = input_data['edge_index'].to(self.device).type(torch.long)
+        edge_attr = input_data['edge_attr'].to(self.device)
+        #u = input_data['u'].to(self.device)
+        batch = input_data['batch'].to(self.device)
+
+        x, edge_attr, u = self.gnn1(x=x, edge_index=edge_index, edge_attr=edge_attr, u=None, batch=batch)
+        #x, edge_attr, u = self.gnn2(x=x, edge_index=edge_index, edge_attr=edge_attr, u=None, batch=batch)
+        #x, edge_attr, u = self.gnn3(x=x, edge_index=edge_index, edge_attr=edge_attr, u=None, batch=batch)
+
+        action_emb_list = []
+        node_score_list = []
+        batch_list = []
+        for i in range(input_data['batch'][-1]+1):
+            x_per_batch = x[(input_data['batch']==i).nonzero(as_tuple=False).reshape(-1),:]
+            '''
+            node_score_per_batch = []
+            
+            for node_emb in x_per_batch:
+                node_score_per_batch.append(self.node_layers(node_emb))
+            node_score_per_batch = torch.cat(node_score_per_batch)
+
+            action_input_emb_per_batch = x_per_batch.mean(axis=0)
+
+            node_score_list.append(node_score_per_batch)
+            action_emb_list.append(action_input_emb_per_batch)
+            '''
+            batch_list.append(x[(input_data['batch']==i).nonzero(as_tuple=False).reshape(-1),:])
+        x = torch.stack(batch_list).to(self.device)
+        '''
+        action_input_emb = torch.stack(action_emb_list).to(self.device)
+        node_score = torch.stack(node_score_list).to(self.device)
+
+        #softmax = nn.Softmax(dim=1).to(device)
+        #action_prob = softmax(self.action_layers(action_input_emb))
+        action_prob = self.action_layers(action_input_emb)
+        '''
+        x_emb = x.mean(axis=1)#아무연결없는노드 빼는법 있을까?
+        action_prob = self.action_layers(x_emb)
         #node_score = self.node_layers_test(x_emb)
         #node_score_emb = torch.concat((x_emb, action_prob), dim=-1)
         #node_score = self.node_layers_test_with_action(node_score_emb)

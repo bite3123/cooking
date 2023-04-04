@@ -214,7 +214,7 @@ def train_action(device, hidden_dim, num_action, node_feature_size, edge_feature
             pickle.dump(loss_data, outfile)
 
 def train_action_test2(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim, batch_size, lr, num_epoch, data_dir):
-    model = ActionModel(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim)
+    model = ActionModel_test2(device, hidden_dim, num_action, node_feature_size, edge_feature_size, global_dim)
     model_action = []
     model_node = []
     model_gnn = []
@@ -317,7 +317,6 @@ def train_action_test2(device, hidden_dim, num_action, node_feature_size, edge_f
             L_action = loss_ce_action(pred_action_prob, act_label)
             #L_object = loss_ce_object(pred_object_prob, obj_label)
             L_object = loss_bce_object(pred_object_prob, target_object_prob.type(torch.float))
-            
             L_total = L_action + L_object
             L_total.backward()
             optimizer.step()
@@ -330,11 +329,18 @@ def train_action_test2(device, hidden_dim, num_action, node_feature_size, edge_f
             obj_running_loss += L_object.item()
             obj_last_loss = obj_running_loss/(i+1)
 
+            #print(pred_object_prob.view(-1,2).shape)
+            #print(target_object_prob.view(-1, 2).shape)
+
             #print(target_node_scores.shape)
             num_act_correct += torch.sum(torch.argmax(pred_action_prob, dim=-1)==act_label)
             num_act_total += act_label.size(dim=0)
-            num_obj_correct += torch.sum(torch.argmax(pred_object_prob, dim=-1)==torch.argmax(target_object_prob,dim=-1))
-            num_obj_total += obj_label.size(dim=0)
+            #num_obj_correct += torch.sum(torch.argmax(pred_object_prob, dim=-1)==torch.argmax(target_object_prob,dim=-1))
+            #num_obj_total += obj_label.size(dim=0)
+            num_obj_correct += torch.sum(torch.argmax(pred_object_prob.view(-1,2), dim=-1)==torch.argmax(target_object_prob.view(-1,2), dim=-1))
+            num_obj_total += target_object_prob.view(-1, 2).size(dim=0)
+            print(torch.sum(torch.argmax(pred_object_prob.view(-1,2), dim=-1)==torch.argmax(target_object_prob.view(-1,2), dim=-1)).item())
+            print(target_object_prob.view(-1, 2).size(dim=0))
 
         val_running_loss = 0.0
         val_last_loss = 0.0
@@ -382,8 +388,10 @@ def train_action_test2(device, hidden_dim, num_action, node_feature_size, edge_f
                 val_num_act_correct += torch.sum(torch.argmax(val_pred_action_prob, dim=-1)==val_act_label)
                 val_num_act_total += val_act_label.size(dim=0)
 
-                val_num_obj_correct += torch.sum(torch.argmax(val_pred_object_prob, dim=-1)==torch.argmax(val_target_object_prob, dim=-1))
-                val_num_obj_total += val_obj_label.size(dim=0)
+                #val_num_obj_correct += torch.sum(torch.argmax(val_pred_object_prob, dim=-1)==torch.argmax(val_target_object_prob, dim=-1))
+                #val_num_obj_total += val_obj_label.size(dim=0)
+                val_num_obj_correct += torch.sum(torch.argmax(val_pred_object_prob.view(-1,2), dim=-1)==torch.argmax(val_target_object_prob.view(-1,2), dim=-1))
+                val_num_obj_total += val_target_object_prob.view(-1, 2).size(dim=0)
 
         act_acc = num_act_correct.item()/num_act_total
         obj_acc = num_obj_correct.item()/num_obj_total

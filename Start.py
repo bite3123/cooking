@@ -10,13 +10,13 @@ node_feature_size = 12 #nf6+pose6
 edge_feature_size = 7 # 
 
 hidden_dim = 128
-num_epoch = 1001
-batch_size = 16
+num_epoch = 102
+batch_size = 128
 lr = 1e-06
-data_dir = "stacking5_mixing5_Pose_3"
-show_result = False
+data_dir = "stacking5_mixing5_Pose_10"
+show_result = True
 infer_num = None
-check_each = True
+check_each = False
 global_dim = 16
 #action / object lr 다르게
 #train_action(device, hidden_dim, num_action, node_feature_size, edge_feature_size*2, global_dim, batch_size, lr, num_epoch, data_dir)
