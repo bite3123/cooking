@@ -231,11 +231,6 @@ def inference_sequence_custom(device, hidden_dim, num_action, node_feature_size,
 
     for test_data in data_test_loader:
         test_input, test_target, test_info = test_data
-        print(test_input['edge_index'].shape)
-        print(test_input['edge_index'])
-        print(test_input['edge_attr'].shape)
-        print(test_input['edge_attr'])
-        input()
         print("#########################################")
         print("data info:")
         print("demo type:", test_info['demo'])
@@ -247,10 +242,11 @@ def inference_sequence_custom(device, hidden_dim, num_action, node_feature_size,
 
         print("--------------------------------")
         print("input state_edge_attr:\n")
-        print(test_input['edge_attr'][:,:7])
+        #print(test_input['edge_attr'][:,:7])
         print("--------------------------------")
         print("goal state_edge_attr:\n")
-        print(test_input['edge_attr'][:,7:])
+        #print(test_input['edge_attr'][:,7:])
+
         #print(goal_edge_attr)
         #test_input['edge_attr'][:, 7:] = goal_edge_attr
         #edge update
@@ -265,12 +261,14 @@ def inference_sequence_custom(device, hidden_dim, num_action, node_feature_size,
                 # 
                 # action X object prob => table 만들기
                 # 
-
+            pred_action_prob = F.softmax(pred_action_prob, dim=-1)
+            pred_object_prob = F.softmax(pred_object_prob, dim=-1)
             act_obj_prob_table = torch.matmul(torch.transpose(pred_action_prob, 0, 1), pred_object_prob)
-            print(act_obj_prob_table.shape)
+            print("Action-Object Prob Table:")
+            print(act_obj_prob_table)
             sorted_table, indices = torch.sort(act_obj_prob_table.view(-1), descending=True)
             
-            for idx in range(120):#임의로 제한
+            for idx in range(100):#임의로 제한
                 action_code, object_code = divmod(indices[idx].item(), pred_object_prob.size(-1))
                 print("Predicted action and object:")
                 print(action_code)
@@ -296,7 +294,7 @@ def inference_sequence_custom(device, hidden_dim, num_action, node_feature_size,
             test_input['edge_attr'][:, :7] = state_edge_attr
             print("plan one more step")
             input()
-            if num_plan > 15: #임의로 제한
+            if num_plan > 30: #임의로 제한
                 break
         if check_each:
             input()      
